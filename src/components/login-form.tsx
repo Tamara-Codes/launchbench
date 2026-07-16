@@ -16,7 +16,7 @@ export function LoginForm() {
       provider,
       // Login establishes only an app identity. Gmail send/read permission is
       // requested separately through the workspace's Composio connection.
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/app` },
     });
     setBusy(false);
     if (error) setMessage(error.message);
