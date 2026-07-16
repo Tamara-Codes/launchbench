@@ -15,10 +15,7 @@
     "test": "vitest run",
     "verify:deployment": "tsx scripts/verify-deployment.ts",
     "test:watch": "vitest",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:push": "supabase db push"
   },
   "dependencies": {
     "@composio/core": "^0.13.1",
@@ -28,11 +25,10 @@
     "@radix-ui/react-select": "^2.3.3",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.109.0",
-    "better-sqlite3": "^11.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.44.6",
     "firecrawl": "^4.3.5",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.469.0",
     "next": "^16.2.10",
     "react": "^19.2.7",
@@ -46,11 +42,9 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.14",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "drizzle-kit": "^0.31.5",
     "eslint": "^9.37.0",
     "eslint-config-next": "^16.2.10",
     "tailwindcss": "^4.1.14",

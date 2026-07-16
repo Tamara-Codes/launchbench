@@ -18,7 +18,6 @@ const optionalSecret = z.preprocess(
  * user through configuration; each provider validates its own key at call time.
  */
 const schema = z.object({
-  DATABASE_URL: z.string().min(1).default("./data/sales-agent.db"),
   GEMINI_MODEL: z.string().min(1).default("gemini-3.5-flash"),
   GEMINI_API_KEY: z.string().optional().default(""),
   FIRECRAWL_API_KEY: z.string().optional().default(""),
@@ -62,8 +61,7 @@ export function hasKey(name: keyof Env): boolean {
   return typeof v === "string" && v.trim().length > 0;
 }
 
-/** Supabase remains optional until a project is connected, allowing the
- * single-user SQLite app to keep working during the migration. */
+/** True when the Supabase application is configured. */
 export function hasSupabaseConfig(): boolean {
   const env = getEnv();
   return Boolean(

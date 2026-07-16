@@ -2,73 +2,68 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, Images, Orbit, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BriefcaseBusiness, Check, ChevronDown, Images, LayoutDashboard, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 
-const navigation = [
-  { href: "/app/sales", label: "Sales Agent", icon: BriefcaseBusiness },
-  { href: "/app/content", label: "Content Studio", icon: PenLine },
+type Product = { id: string; name: string; active: boolean };
+type Agent = "sales" | "content";
+
+const agentNavigation = {
+  sales: [
+    { href: "/app/sales", label: "Find Leads", icon: BriefcaseBusiness },
+    { href: "/app/leads", label: "Leads", icon: BriefcaseBusiness },
+    { href: "/app/search-history", label: "Search History", icon: Workflow },
+  ],
+  content: [
+    { href: "/app/content", label: "Content Studio", icon: PenLine },
+    { href: "/app/media", label: "Media Library", icon: Images },
+    { href: "/app/content-calendar", label: "Content Calendar", icon: Workflow },
+    { href: "/app/content-history", label: "Content History", icon: Workflow },
+  ],
+};
+const sharedNavigation = [
+  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/app/agents", label: "Agents", icon: Workflow },
   { href: "/app/products", label: "Products", icon: Package },
-  { href: "/app/media", label: "Media Library", icon: Images },
-  { href: "/app/jobs", label: "Agent Jobs", icon: Workflow },
   { href: "/app/settings", label: "Workspace Settings", icon: Settings },
 ];
 
-export function TenantSidebar({ workspaceName }: { workspaceName: string }) {
+function agentForPath(pathname: string): Agent { return pathname.startsWith("/app/content") ? "content" : "sales"; }
+
+export function TenantSidebar({ workspaceName, products }: { workspaceName: string; products: Product[] }) {
   const pathname = usePathname();
+  const [agent, setAgent] = useState<Agent>(() => agentForPath(pathname));
+  const [productMenuOpen, setProductMenuOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(products.find((product) => product.active)?.id ?? null);
+  useEffect(() => setAgent(agentForPath(pathname)), [pathname]);
+  const selectedProduct = products.find((product) => product.id === selectedProductId);
 
   return (
     <>
       <header className="flex items-center justify-between border-b bg-surface px-4 py-3 md:hidden">
-        <Link href="/app/sales" className="flex items-center gap-2 font-mono text-sm font-semibold tracking-[0.08em] text-ink-strong">
-          <Orbit className="h-5 w-5 text-accent" />
-          LAUNCHBENCH
-        </Link>
+        <BrandLogo href="/app/sales" compact />
         <SignOutButton />
       </header>
       <aside className="sidebar-shell hidden w-[260px] shrink-0 font-mono md:sticky md:top-0 md:flex md:h-[100dvh] md:flex-col">
         <div className="border-b border-border px-4 py-5">
-          <Link href="/app/sales" className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-fg">
-              <Orbit className="h-5 w-5" />
-            </span>
-            <span className="text-sm font-semibold tracking-[0.08em] text-ink-strong">LAUNCHBENCH</span>
-          </Link>
-          <div className="mt-5 rounded-lg border border-border bg-surface2 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Workspace</p>
-            <p className="mt-1 truncate text-sm font-semibold text-ink-strong">{workspaceName}</p>
+          <BrandLogo href="/app/sales" compact />
+          <div className="relative mt-5">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Current project</p>
+            {products.length ? <button type="button" onClick={() => setProductMenuOpen((open) => !open)} className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-surface2 px-3 py-2.5 text-left text-sm font-semibold text-ink-strong hover:bg-accent-soft"><span className="truncate">{selectedProduct?.name ?? "Choose project"}</span><ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", productMenuOpen && "rotate-180")} /></button> : <Link href="/app/products/new" className="block rounded-lg border border-dashed border-border px-3 py-2.5 text-sm font-medium text-accent">Add your first project</Link>}
+            {productMenuOpen && <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-xl">{products.filter((product) => product.active).map((product) => { const selected = product.id === selectedProductId; return <button key={product.id} type="button" onClick={() => { setSelectedProductId(product.id); setProductMenuOpen(false); }} className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium", selected ? "bg-accent-soft text-accent" : "text-ink hover:bg-surface2")}><span className="min-w-0 flex-1 truncate">{product.name}</span>{selected && <Check className="h-4 w-4" />}</button>; })}<Link href="/app/products" onClick={() => setProductMenuOpen(false)} className="mt-1 flex items-center gap-2 border-t border-border px-3 py-2.5 text-sm text-muted hover:text-ink"><Package className="h-4 w-4" />Manage projects</Link></div>}
           </div>
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Workspace navigation">
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Workspace</p>
-          {navigation.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface2 hover:text-ink",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-border p-4">
-          <div className="mb-3 flex items-center gap-2 text-xs text-muted">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Founder ops for distribution
-          </div>
-          <SignOutButton />
+        <div className="mx-3 mt-4 grid grid-cols-2 rounded-lg bg-surface2 p-1">
+          <Link href="/app/sales" onClick={() => setAgent("sales")} className={cn("rounded-md px-2 py-2 text-center text-xs font-semibold", agent === "sales" ? "bg-surface text-ink-strong shadow-sm" : "text-muted hover:text-ink")}>Sales Agent</Link>
+          <Link href="/app/content" onClick={() => setAgent("content")} className={cn("rounded-md px-2 py-2 text-center text-xs font-semibold", agent === "content" ? "bg-surface text-ink-strong shadow-sm" : "text-muted hover:text-ink")}>Content Agent</Link>
         </div>
+        <nav className="space-y-1 px-3 pb-4 pt-4" aria-label="Agent navigation"><p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{agent === "sales" ? "Find and contact customers" : "Plan and create content"}</p>{agentNavigation[agent].map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium", pathname.startsWith(href) ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface2 hover:text-ink")}><Icon className="h-4 w-4" />{label}</Link>)}</nav>
+        <nav className="mt-2 border-t border-border px-3 pb-4 pt-4" aria-label="Shared navigation"><p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Shared</p>{sharedNavigation.map(({ href, label, icon: Icon }) => { const active = href === "/app" ? pathname === "/app" : pathname.startsWith(href); return <Link key={href} href={href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium", active ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface2 hover:text-ink")}><Icon className="h-4 w-4" />{label}</Link>; })}</nav>
+        <div className="mt-auto border-t border-border p-4"><p className="mb-3 flex items-center gap-2 text-xs text-muted"><Sparkles className="h-3.5 w-3.5 text-accent" />{workspaceName}</p><SignOutButton /></div>
       </aside>
     </>
   );
 }
-

@@ -1,7 +1,16 @@
 import type { LeadAnalysis } from "@/agents/lead-finder/schema";
-import type { QualificationSettings } from "@/db/schema";
 import { classifyLocation, type TerritoryBounds } from "./geo";
 import { normalizeEmail } from "./normalize/email";
+
+/** Qualification policy persisted with a Supabase territory/job request. */
+export interface QualificationSettings {
+  requirePublicEmail: boolean;
+  requireWithinTerritory: boolean;
+  requireWebsite: boolean;
+  requireIndependent: boolean;
+  minConfidence: number;
+  rejectExistingDigitalGuide: boolean;
+}
 
 export type QualificationOutcome = "qualified" | "manualReview" | "rejected";
 

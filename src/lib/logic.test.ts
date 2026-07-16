@@ -12,7 +12,7 @@ import {
 import { canTransition, isResumable, isTerminal } from "./run-state";
 import { isPublicUrl, isScrapableDomain, validatePublicUrl } from "./ssrf";
 import { leadAnalysisSchema } from "@/agents/lead-finder/schema";
-import type { QualificationSettings } from "@/db/schema";
+import type { QualificationSettings } from "./qualify";
 
 const bounds = {
   town: "Malinska",

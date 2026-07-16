@@ -23,11 +23,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
-  // Native / Node-only SDKs: keep them out of the bundler so they load via
-  // Node's require at runtime (avoids optional-dependency resolution warnings
-  // such as firecrawl's `undici`, and native-binding issues for better-sqlite3).
+  // Node-only SDKs stay outside the bundler to avoid optional-dependency
+  // resolution warnings (for example Firecrawl's undici dependency).
   serverExternalPackages: [
-    "better-sqlite3",
     "firecrawl",
     "@composio/core",
     "@google/genai",

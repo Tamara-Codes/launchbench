@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Button } from "./ui";
 
 export function LoginForm() {
   const [message, setMessage] = useState("");
@@ -23,15 +23,10 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-md">
-      <CardHeader><CardTitle>Sign in to Launchbench</CardTitle></CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <Button className="w-full" disabled={busy} onClick={() => signIn("google")}>{busy ? "Redirecting…" : "Continue with Google"}</Button>
-          <Button className="w-full" variant="outline" disabled={busy} onClick={() => signIn("github")}>Continue with GitHub</Button>
-          {message && <p className="text-sm text-muted" role="status">{message}</p>}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <Button className="h-12 w-full text-sm" disabled={busy} onClick={() => signIn("google")}>{busy ? "Redirecting…" : "Continue with Google"}</Button>
+      <Button className="h-12 w-full text-sm" variant="outline" disabled={busy} onClick={() => signIn("github")}>Continue with GitHub</Button>
+      {message && <p className="text-sm text-danger" role="status">{message}</p>}
+    </div>
   );
 }

@@ -75,3 +75,17 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .rocket-lottie-takeoff {
+    animation: rocket-lottie-takeoff 8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+}
+
+@keyframes rocket-lottie-takeoff {
+  0%, 68% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  72% { transform: translateY(-8px) rotate(-2deg); opacity: 1; }
+  76% { transform: translateY(4px) rotate(2deg); opacity: 1; }
+  84% { transform: translateY(-330px) scale(0.9); opacity: 1; }
+  88%, 100% { transform: translateY(-330px) scale(0.9); opacity: 0; }
+}

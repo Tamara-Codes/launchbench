@@ -1,7 +1,7 @@
 # Supabase setup for Nos Astra
 
 This folder contains the production multi-tenant schema. Do not apply it to the
-local SQLite database; apply it in a new Supabase project.
+Supabase migrations for the Launchbench tenant-aware application. Apply them in a new Supabase project.
 
 ## 1. Create environments
 
