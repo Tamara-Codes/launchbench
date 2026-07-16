@@ -11,6 +11,7 @@ function slugify(value: string) {
 export function OnboardingForm() {
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
+  const [workspaceSlugEdited, setWorkspaceSlugEdited] = useState(false);
   const [productName, setProductName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,8 +48,8 @@ export function OnboardingForm() {
       <CardHeader><CardTitle>Create your workspace</CardTitle><p className="text-sm text-muted">Start with the business and first product you want your agents to work on.</p></CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={submit}>
-          <div className="space-y-1.5"><Label>Business or workspace name</Label><Input value={workspaceName} onChange={(event) => { setWorkspaceName(event.target.value); if (!workspaceSlug) setWorkspaceSlug(slugify(event.target.value)); }} required maxLength={120} /></div>
-          <div className="space-y-1.5"><Label>Workspace URL name</Label><Input value={workspaceSlug} onChange={(event) => setWorkspaceSlug(slugify(event.target.value))} required maxLength={60} /><p className="text-xs text-muted">Lowercase letters, numbers, and hyphens only.</p></div>
+          <div className="space-y-1.5"><Label>Business or workspace name</Label><Input value={workspaceName} onChange={(event) => { setWorkspaceName(event.target.value); if (!workspaceSlugEdited) setWorkspaceSlug(slugify(event.target.value)); }} required maxLength={120} /></div>
+          <div className="space-y-1.5"><Label>Workspace URL name</Label><Input value={workspaceSlug} onChange={(event) => { setWorkspaceSlugEdited(true); setWorkspaceSlug(slugify(event.target.value)); }} required maxLength={60} /><p className="text-xs text-muted">Lowercase letters, numbers, and hyphens only.</p></div>
           <div className="space-y-1.5"><Label>First product or project</Label><Input value={productName} onChange={(event) => setProductName(event.target.value)} required maxLength={160} placeholder="e.g. Digital Guest Welcome Book" /></div>
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <Button className="w-full" disabled={busy}>{busy ? "Creating workspace…" : "Create workspace"}</Button>
