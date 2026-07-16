@@ -5,6 +5,9 @@ alter table public.territories
   add column qualification_settings jsonb not null default '{"requirePublicEmail":true,"requireWithinTerritory":true,"requireWebsite":true,"requireIndependent":false,"minConfidence":0.5,"rejectExistingDigitalGuide":false}'::jsonb,
   add column notes text not null default '';
 
+alter table public.territories
+  add constraint territories_id_workspace_key unique (id, workspace_id);
+
 create table public.sales_runs (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
