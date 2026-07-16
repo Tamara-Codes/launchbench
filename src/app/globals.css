@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Retro terminal system: blackened surfaces, phosphor-green text, and a single
+   bright green accent. The app intentionally stays dark to preserve the look. */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: var(--font-mono);
+}
+
+:root {
+  color-scheme: dark;
+  --canvas: #111316;
+  --surface: #171a1e;
+  --surface2: #20242a;
+  --border: #363c44;
+  --muted: #a4abb5;
+  --ink: #e0e5e4;
+  --ink-strong: #f7faf9;
+  --accent: #45d995;
+  --accent-fg: #07130e;
+  --accent-soft: #163b2d;
+  --success: #45d995;
+  --success-soft: #143527;
+  --warning: #e4bd58;
+  --warning-soft: #3d3218;
+  --danger: #f08282;
+  --danger-soft: #3f2022;
+  --info: #55cea1;
+  --info-soft: #173b31;
+}
+
+body {
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sidebar-shell {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    var(--surface) calc(100% - 20px),
+    var(--canvas) 100%
+  );
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+}
+
+.prose-evidence {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
