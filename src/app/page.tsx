@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
+import { MarketingPage } from "@/components/marketing-page";
 
-/** The tenant-aware Supabase workspace is the sole application entry point. */
+/** Public landing page. The tenant-aware workspace lives at /app. */
 export default function HomePage() {
-  redirect("/app");
+  return <MarketingPage />;
 }

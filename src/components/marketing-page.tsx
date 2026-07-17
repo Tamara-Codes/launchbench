@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, CheckCircle2, Images, SearchCheck, Send, ShieldCheck } from "lucide-react";
+import { RocketDeskIcon } from "@/components/rocket-desk-icon";
 
 const faqs = [
   ["Is this a chatbot?", "No. Launchbench has two focused agents with clear jobs: finding leads and preparing email campaigns, or creating social content. It is built for repeatable distribution work, not open-ended conversations."],
@@ -16,7 +17,7 @@ export function MarketingPage() {
     <div className="border-b border-border bg-surface px-6 py-2 text-center text-xs font-medium text-muted">Founder ops for distribution.</div>
 
     <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
-      <Link href="/" className="font-mono text-sm font-semibold tracking-[0.08em] text-ink-strong">LAUNCHBENCH<span className="text-accent">_</span></Link>
+      <Link href="/" className="inline-flex items-center gap-2 font-mono text-sm font-semibold tracking-[0.08em] text-ink-strong"><RocketDeskIcon className="h-8 w-auto" />LAUNCHBENCH<span className="text-accent">_</span></Link>
       <div className="flex items-center gap-3"><Link href="/login" className="hidden text-sm text-muted transition-colors hover:text-ink sm:block">Sign in</Link><Link href="/login" className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-sm font-semibold text-accent-fg transition-transform active:translate-y-px">Request access <ArrowRight className="ml-2 h-4 w-4" /></Link></div>
     </nav>
 
