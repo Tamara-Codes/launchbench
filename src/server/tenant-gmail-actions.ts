@@ -23,15 +23,6 @@ export async function initiateTenantGmailConnection() {
   } catch (error) { return { ok: false as const, error: error instanceof Error ? error.message : "Could not connect Gmail." }; }
 }
 
-export async function refreshTenantGmailConnection() {
-  try {
-    const context = requireAdmin(await getTenantContext()); const admin = createAdminClient(); const { data: connection } = await admin.from("integration_connections").select("composio_connection_id").eq("workspace_id", context.workspace.id).eq("provider", "gmail").maybeSingle();
-    if (!connection) throw new Error("Gmail is not connected."); const status = await composioGmail.getStatus(connection.composio_connection_id);
-    const { error } = await admin.from("integration_connections").update({ status: status.status === "active" ? "active" : status.status === "failed" ? "error" : "pending", connected_email: status.accountEmail, oauth_state: "" }).eq("workspace_id", context.workspace.id).eq("provider", "gmail");
-    if (error) throw new Error(error.message); revalidatePath("/app/settings"); return { ok: true as const };
-  } catch (error) { return { ok: false as const, error: error instanceof Error ? error.message : "Could not refresh Gmail." }; }
-}
-
 export async function disconnectTenantGmailConnection() {
   try {
     const context = requireAdmin(await getTenantContext()); const admin = createAdminClient(); const { data: connection } = await admin.from("integration_connections").select("composio_connection_id").eq("workspace_id", context.workspace.id).eq("provider", "gmail").maybeSingle();

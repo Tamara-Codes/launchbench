@@ -3,6 +3,11 @@ import { OnboardingForm } from "@/components/onboarding-form";
 import { BrandLogo } from "@/components/brand-logo";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = {
+  title: "Set up your workspace",
+  robots: { index: false, follow: false },
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {

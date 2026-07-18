@@ -2,6 +2,11 @@ import { LoginForm } from "@/components/login-form";
 import { LoginAnimation } from "@/components/login-animation";
 import { hasSupabaseConfig } from "@/env";
 
+export const metadata = {
+  title: "Sign in",
+  robots: { index: false, follow: false },
+};
+
 export const dynamic = "force-dynamic";
 
 export default function LoginPage() {

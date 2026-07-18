@@ -36,7 +36,7 @@ export function Select({ children, value, defaultValue, onChange, className, nam
       <SelectPrimitive.Icon><ChevronDown className="h-4 w-4 text-muted" /></SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
     <SelectPrimitive.Portal>
-      <SelectPrimitive.Content position="popper" sideOffset={6} className="z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border bg-surface p-1 shadow-lg">
+      <SelectPrimitive.Content position="popper" sideOffset={6} className="z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border bg-surface p-1 shadow-lg">
         <SelectPrimitive.Viewport>
           {options.map((option) => <SelectPrimitive.Item key={option.value} value={option.value} disabled={option.disabled} className="relative flex cursor-default select-none items-center rounded-md py-2 pl-8 pr-3 text-sm font-medium text-ink outline-none data-[highlighted]:bg-accent-soft data-[highlighted]:text-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50"><span className="absolute left-2 flex h-4 w-4 items-center justify-center"><SelectPrimitive.ItemIndicator><Check className="h-3.5 w-3.5" /></SelectPrimitive.ItemIndicator></span><SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText></SelectPrimitive.Item>)}
         </SelectPrimitive.Viewport>

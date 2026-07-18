@@ -33,12 +33,19 @@ export async function runTenantContentJob(job: ClaimedTenantJob) {
   if (runError || !run) throw new Error(runError?.message ?? "Could not create content run.");
 
   const history = (recent ?? []).map((item) => `- ${item.content_type}: ${item.hook}\n  ${item.caption.slice(0, 180)}`).join("\n") || "No prior content.";
-  const productContext = [product.full_description, product.core_benefit, product.social_media_notes, product.content_dos, product.content_donts].filter(Boolean).join("\n").slice(0, 12_000);
+  const productContext = [
+    `What it is: ${product.full_description}`,
+    `Main benefit: ${product.core_benefit}`,
+    product.social_media_notes && `Key messages: ${product.social_media_notes}`,
+    product.visual_style && `Visual direction: ${product.visual_style}`,
+    product.content_dos && `Always do: ${product.content_dos}`,
+    product.content_donts && `Never do or claim: ${product.content_donts}`,
+  ].filter(Boolean).join("\n").slice(0, 12_000);
   const strategyContext = JSON.stringify({
     audience: strategy?.primary_audience || product.target_customer,
     voice: strategy?.brand_voice || product.brand_voice,
     messages: strategy?.core_messages ?? [], pillars: strategy?.content_pillars ?? [], visuals: strategy?.visual_directions ?? [],
-    prohibitedClaims: strategy?.prohibited_claims ?? [], bannedPhrases: strategy?.banned_phrases ?? [], ctas: strategy?.preferred_ctas ?? [],
+    prohibitedClaims: strategy?.prohibited_claims ?? [], bannedPhrases: strategy?.banned_phrases ?? [], ctas: strategy?.preferred_ctas?.length ? strategy.preferred_ctas : [product.preferred_cta].filter(Boolean),
   }).slice(0, 12_000);
   const itemIds: string[] = [];
   await appendTenantJobEvent(job, "progress", `Generating ${input.variations} content variation(s).`);
@@ -61,7 +68,7 @@ export async function runTenantContentJob(job: ClaimedTenantJob) {
       ].join("\n\n"),
       schema: socialContentSchema,
       schemaName: "tenant_social_content",
-      temperature: 0.5,
+      temperature: 0,
     });
     const { data: item, error: itemError } = await db.from("content_items").insert({
       workspace_id: job.workspace_id, product_id: job.product_id, run_id: run.id, platform: output.platform, format: output.format,

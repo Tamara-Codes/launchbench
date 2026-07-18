@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="34 156 232 210" role="img" aria-labelledby="title">
+  <title id="title">Launchbench</title>
+  <rect width="300" height="400" fill="#15191f"/>
+  <g fill="#f7faf9">
+    <rect x="88.5" y="292" width="15" height="60" rx="3"/>
+    <rect x="196.5" y="292" width="15" height="60" rx="3"/>
+    <rect x="79" y="343.5" width="34" height="13" rx="3"/>
+    <rect x="187" y="343.5" width="34" height="13" rx="3"/>
+  </g>
+  <path d="M40 300h220l-2 12H42z" fill="#dfe4e3"/>
+  <path d="m54 286 192 0 14 14H40z" fill="#f7faf9"/>
+  <rect x="201" y="290" width="22" height="6" rx="3" fill="#45d995"/>
+  <g transform="translate(150 296) scale(.62) translate(-150 -296)" fill="#45d995">
+    <path d="m184 224 32 54-40-18z"/><path d="m116 224-32 54 40-18z"/>
+    <path d="M150 84c13 3 31 32 38 66 0 8-2 58-2 88 0 14-7 8-14 24-4 3-10 4-22 4s-18-1-22-4c-7-16-14-10-14-24 0-30-2-80-2-88-7-34 25-63 38-66z"/>
+  </g>
+  <circle cx="150" cy="205" r="8.7" fill="#12161c"/>
+</svg>

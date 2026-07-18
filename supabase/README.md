@@ -1,4 +1,4 @@
-# Supabase setup for Nos Astra
+# Supabase setup for LaunchBench
 
 This folder contains the production multi-tenant schema. Do not apply it to the
 Supabase migrations for the Launchbench tenant-aware application. Apply them in a new Supabase project.
@@ -36,6 +36,8 @@ order. Do not skip a file:
 7. `migrations/202607160007_bounded_job_retries.sql`
 8. `migrations/202607160008_tenant_media_assets.sql`
 9. `migrations/202607160009_tenant_gmail_connection.sql`
+10. `migrations/202607160010_workspace_agent_settings.sql`
+11. `migrations/202607160011_rename_nos_astra_workspace.sql`
 
 Together they create workspaces, product-scoped templates, integration
 connections, durable job records, Sales Agent data, private media storage, and

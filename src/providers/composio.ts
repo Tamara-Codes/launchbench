@@ -48,6 +48,19 @@ function normalizeStatus(raw: string): ConnectionStatus["status"] {
   return "disconnected";
 }
 
+/** Reads only the Gmail address claim from an OAuth identity token; the token is never stored. */
+function emailFromIdToken(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const payload = value.split(".")[1];
+  if (!payload) return "";
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { email?: unknown };
+    return typeof parsed.email === "string" ? parsed.email.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Gmail provider adapter over Composio. All Gmail actions run through the
  * hosted Composio connection for a single local user; we persist only the
@@ -100,11 +113,17 @@ export class ComposioGmailProvider {
     const client = this.getClient();
     try {
       const acct: any = await client.connectedAccounts.get(connectedAccountId);
+      const status = normalizeStatus(acct?.status ?? "");
+      let accountEmail = String(
+        acct?.data?.email ?? acct?.meta?.email ?? acct?.email ??
+        emailFromIdToken(acct?.data?.id_token ?? acct?.state?.val?.id_token),
+      );
+      if (!accountEmail && status === "active") {
+        accountEmail = await this.getConnectedEmail(connectedAccountId);
+      }
       return {
-        status: normalizeStatus(acct?.status ?? ""),
-        accountEmail: String(
-          acct?.data?.email ?? acct?.meta?.email ?? acct?.email ?? "",
-        ),
+        status,
+        accountEmail,
         connectedAccountId: String(acct?.id ?? connectedAccountId),
       };
     } catch (err) {
@@ -119,6 +138,16 @@ export class ComposioGmailProvider {
     } catch (err) {
       throw new Error(`Composio disconnect failed: ${safeErrorMessage(err)}`);
     }
+  }
+
+  /** Reads Gmail's authenticated profile through Composio; no token is exposed or stored. */
+  private async getConnectedEmail(connectedAccountId: string): Promise<string> {
+    const result: any = await this.getClient().tools.proxyExecute({
+      endpoint: "https://gmail.googleapis.com/gmail/v1/users/me/profile",
+      method: "GET",
+      connectedAccountId,
+    });
+    return String(result?.data?.emailAddress ?? "").trim();
   }
 
   private async exec(slug: string, userId: string, args: Record<string, unknown>) {

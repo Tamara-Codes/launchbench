@@ -2,18 +2,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, CheckCircle2, Images, SearchCheck, Send, ShieldCheck } from "lucide-react";
 import { RocketDeskIcon } from "@/components/rocket-desk-icon";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
 const faqs = [
-  ["Is this a chatbot?", "No. Launchbench has two focused agents with clear jobs: finding leads and preparing email campaigns, or creating social content. It is built for repeatable distribution work, not open-ended conversations."],
-  ["Does it run my business on its own?", "No. You start the work, review the results, and approve what happens next. Emails are not sent and content is not published without you."],
-  ["Can I use it for more than one product?", "Yes. Keep products, campaigns, content, and media separate in the same workspace."],
-  ["Who is it for?", "It is for builders, founders, small teams, and business owners who like building but need a better way to distribute what they make."],
+  { question: "Is this a chatbot?", answer: "No. Launchbench has two focused agents with clear jobs: finding leads and preparing email campaigns, or creating social content. It is built for repeatable distribution work, not open-ended conversations." },
+  { question: "Does it run my business on its own?", answer: "No. You start the work, review the results, and approve what happens next. Emails are not sent and content is not published without you." },
+  { question: "Can I use it for more than one product?", answer: "Yes. Keep products, campaigns, content, and media separate in the same workspace." },
+  { question: "Who is it for?", answer: "It is for builders, founders, small teams, and business owners who like building but need a better way to distribute what they make." },
 ];
 
 const included = ["Lead Finder and Social Content Agent", "Lead and outreach history", "Content calendar and history", "Editable instructions and dashboard"];
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "Organization", name: siteName, url: siteUrl.toString(), logo: new URL("/images/launchbench-mark.svg", siteUrl).toString(), email: "codewithtamara@gmail.com", sameAs: ["https://tamara.rocks"] },
+    { "@type": "SoftwareApplication", name: siteName, applicationCategory: "BusinessApplication", operatingSystem: "Web", description: siteDescription, url: siteUrl.toString(), offers: [{ "@type": "Offer", name: "Starter", price: "29", priceCurrency: "EUR", billingDuration: "P1M" }, { "@type": "Offer", name: "Growth", price: "59", priceCurrency: "EUR", billingDuration: "P1M" }, { "@type": "Offer", name: "Scale", price: "99", priceCurrency: "EUR", billingDuration: "P1M" }] },
+    { "@type": "FAQPage", mainEntity: faqs.map(({ question, answer }) => ({ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } })) },
+  ],
+};
+
 export function MarketingPage() {
   return <main className="overflow-hidden bg-canvas text-ink">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
     <div className="border-b border-border bg-surface px-6 py-2 text-center text-xs font-medium text-muted">Founder ops for distribution.</div>
 
     <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
@@ -22,7 +33,7 @@ export function MarketingPage() {
     </nav>
 
     <section className="mx-auto grid max-w-7xl gap-12 px-6 pb-20 pt-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-20">
-      <div><p className="mb-6 text-xs font-medium uppercase tracking-[0.18em] text-accent">Sales and marketing for solo builders</p><h1 className="max-w-2xl text-5xl font-semibold tracking-[-0.055em] text-ink-strong sm:text-6xl lg:text-7xl">The two agents you need to <span className="text-accent">sell what you build.</span></h1><p className="mt-7 max-w-xl text-lg leading-8 text-muted">Lead Finder brings you prospects and email campaigns. Social Content Agent keeps your products visible. You stay focused on building.</p><div className="mt-9 flex flex-wrap gap-3"><Link href="/login" className="inline-flex h-11 items-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-fg transition-transform active:translate-y-px">Request early access <ArrowRight className="ml-2 h-4 w-4" /></Link><a href="#agents" className="inline-flex h-11 items-center rounded-md border border-border px-5 text-sm font-semibold text-ink transition-colors hover:bg-surface2">Meet the agents</a></div><p className="mt-4 text-sm text-muted">Not a chatbot. Not autonomous. You review the work and decide what happens next.</p></div>
+      <div><p className="mb-6 text-xs font-medium uppercase tracking-[0.18em] text-accent">Sales and marketing for solo builders</p><h1 className="max-w-2xl text-5xl font-semibold tracking-[-0.055em] text-ink-strong sm:text-6xl lg:text-7xl">The two agents you need to <span className="text-accent">sell what you build.</span></h1><p className="mt-7 max-w-xl text-lg leading-8 text-muted">Sales Agent finds leads and emails them. Marketing Agent creates your social content. You stay focused on building.</p><div className="mt-9 flex flex-wrap gap-3"><Link href="/login" className="inline-flex h-11 items-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-fg transition-transform active:translate-y-px">Request early access <ArrowRight className="ml-2 h-4 w-4" /></Link><a href="#agents" className="inline-flex h-11 items-center rounded-md border border-border px-5 text-sm font-semibold text-ink transition-colors hover:bg-surface2">Meet the agents</a></div><p className="mt-4 text-sm text-muted">Not a chatbot. Not autonomous. You review the work and decide what happens next.</p></div>
       <div className="relative mx-auto w-full max-w-[620px] overflow-hidden rounded-md border border-border bg-surface shadow-[0_28px_80px_rgba(0,0,0,0.24)]"><Image src="/images/solo-builder-hero.png" alt="Founder working on outreach and a content calendar" width={1024} height={1536} priority className="aspect-[4/3] w-full object-cover object-[65%_52%]" /></div>
     </section>
 
@@ -34,7 +45,7 @@ export function MarketingPage() {
 
     <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">Simple pricing that grows with your product range.</h2><p className="mt-4 text-lg leading-8 text-muted">Choose the plan that matches the number of products you actively manage.</p></div><div className="mt-10 grid gap-5 lg:grid-cols-3">{[{ name: "Starter", projects: "1-2 projects", price: "€29", yearly: "€290 / year", description: "For a focused offer or small range." }, { name: "Growth", projects: "3-5 projects", price: "€59", yearly: "€590 / year", description: "For several active offers.", featured: true }, { name: "Scale", projects: "6+ projects", price: "€99", yearly: "€990 / year", description: "For a broader product portfolio." }].map((plan) => <article key={plan.name} className={`rounded-md border p-6 sm:p-8 ${plan.featured ? "border-accent/50 bg-accent-soft" : "border-border bg-surface"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-accent">{plan.name}</p><h3 className="mt-2 text-xl font-semibold text-ink-strong">{plan.projects}</h3></div>{plan.featured && <span className="rounded-full border border-accent/40 px-2.5 py-1 text-xs font-medium text-accent">Most popular</span>}</div><p className="mt-4 text-sm leading-6 text-muted">{plan.description}</p><p className="mt-7 text-4xl font-semibold text-ink-strong">{plan.price}<span className="text-lg font-normal text-muted"> / month</span></p><p className="mt-2 text-sm text-muted">{plan.yearly} · 7-day trial</p><ul className="mt-7 grid gap-3 text-sm text-muted">{included.map((item) => <li key={item} className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />{item}</li>)}</ul><Link href="/login" className="mt-8 inline-flex h-11 items-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-fg transition-transform active:translate-y-px">Start your 7-day trial <ArrowRight className="ml-2 h-4 w-4" /></Link></article>)}</div></section>
 
-    <section className="border-y border-border bg-surface"><div className="mx-auto max-w-7xl px-6 py-20 lg:px-8"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">A few practical questions.</h2></div><div className="mt-10 grid gap-x-10 gap-y-7 md:grid-cols-2">{faqs.map(([question, answer]) => <article key={question} className="border-t border-border pt-5"><h3 className="text-base font-semibold text-ink-strong">{question}</h3><p className="mt-3 text-sm leading-6 text-muted">{answer}</p></article>)}</div></div></section>
+    <section className="border-y border-border bg-surface"><div className="mx-auto max-w-7xl px-6 py-20 lg:px-8"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">A few practical questions.</h2></div><div className="mt-10 grid gap-x-10 gap-y-7 md:grid-cols-2">{faqs.map(({ question, answer }) => <article key={question} className="border-t border-border pt-5"><h3 className="text-base font-semibold text-ink-strong">{question}</h3><p className="mt-3 text-sm leading-6 text-muted">{answer}</p></article>)}</div></div></section>
 
     <section className="border-t border-border bg-surface"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-16 sm:flex-row sm:items-end sm:justify-between lg:px-8"><div className="max-w-xl"><h2 className="text-3xl font-semibold tracking-tight text-ink-strong">You build. Launchbench helps you distribute.</h2><p className="mt-4 text-muted">Find leads, run better outreach, and stay visible without turning your business into an AI experiment.</p></div><Link href="/login" className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-fg transition-transform active:translate-y-px">Request early access <ArrowRight className="ml-2 h-4 w-4" /></Link></div></section>
 

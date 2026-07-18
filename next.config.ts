@@ -29,7 +29,16 @@ const nextConfig: NextConfig = {
     "firecrawl",
     "@composio/core",
     "@google/genai",
+    // @vercel/queue dynamically loads Vercel CLI configuration. Bundling it
+    // into Workflow's generated webhook removes the module filename it needs.
+    "@vercel/queue",
   ],
 };
 
-export default withWorkflow(nextConfig);
+// The Workflow SDK generates internal webhook routes. Keep those routes out of
+// builds where dispatch is deliberately disabled (the local default), so the
+// app can be built and tested without provisioning the Workflow runtime.
+// Production enables this flag as part of its deployment configuration.
+export default process.env.WORKFLOWS_ENABLED === "true"
+  ? withWorkflow(nextConfig)
+  : nextConfig;

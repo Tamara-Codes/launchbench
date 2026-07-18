@@ -1,4 +1,4 @@
--- nos-astra SaaS foundation
+-- LaunchBench SaaS foundation
 --
 -- Every customer-owned record has a workspace_id. RLS is the enforcement
 -- boundary: application code must never be the only protection against a
