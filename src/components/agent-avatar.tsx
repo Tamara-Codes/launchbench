@@ -26,9 +26,9 @@ export const agentAvatarSwatchClasses: Record<AgentAvatarColor, string> = {
   cyan: "bg-cyan-500",
 };
 
-export function AgentAvatar({ name, color, size = "md", className }: { name: string; color: string; size?: "sm" | "md" | "lg"; className?: string }) {
+export function AgentAvatar({ name, color, size = "md", className }: { name: string; color: string; size?: "xs" | "sm" | "md" | "lg"; className?: string }) {
   const resolvedColor = agentAvatarColors.includes(color as AgentAvatarColor) ? color as AgentAvatarColor : "emerald";
-  const sizeClasses = size === "sm" ? "h-10 w-10" : size === "lg" ? "h-24 w-24" : "h-14 w-14";
+  const sizeClasses = size === "xs" ? "h-6 w-6" : size === "sm" ? "h-10 w-10" : size === "lg" ? "h-24 w-24" : "h-14 w-14";
 
   return <div role="img" aria-label={`${name} avatar`} className={cn("relative shrink-0 overflow-hidden rounded-full bg-surface2 ring-1 ring-border", sizeClasses, className)}><Lottie animationData={animationData} loop autoplay rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }} style={{ filter: avatarColorFilters[resolvedColor] }} /><div className="absolute left-[30%] top-[42%] h-[17%] w-[13%]"><Lottie animationData={eyeAnimationData} loop autoplay rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }} /></div><div className="absolute right-[30%] top-[42%] h-[17%] w-[13%]"><Lottie animationData={eyeAnimationData} loop autoplay rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }} /></div></div>;
 }

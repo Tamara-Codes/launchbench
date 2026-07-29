@@ -29,7 +29,6 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional().default(""),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional().default(""),
-  WORKFLOWS_ENABLED: z.enum(["true", "false"]).optional().default("false"),
   ALERT_WEBHOOK_URL: optionalUrl,
   OPERATIONAL_ALERTS_ENABLED: z.enum(["true", "false"]).optional().default("false"),
   CRON_SECRET: optionalSecret,

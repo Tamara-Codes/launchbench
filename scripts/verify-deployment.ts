@@ -8,7 +8,6 @@ if (process.env.VERCEL_ENV === "production") {
   if (!env.GEMINI_API_KEY) failures.push("GEMINI_API_KEY is required for agent execution.");
   if (!env.NEXT_PUBLIC_APP_URL.startsWith("https://")) failures.push("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
   if (env.NEXT_PUBLIC_APP_URL.includes("localhost")) failures.push("NEXT_PUBLIC_APP_URL cannot point to localhost in production.");
-  if (env.WORKFLOWS_ENABLED !== "true") failures.push("WORKFLOWS_ENABLED must be true for production agent execution.");
   if (!env.CRON_SECRET) failures.push("CRON_SECRET is required for expired-job recovery.");
 }
 if (failures.length) {

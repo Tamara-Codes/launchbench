@@ -35,10 +35,7 @@ const nextConfig: NextConfig = {
   ],
 };
 
-// The Workflow SDK generates internal webhook routes. Keep those routes out of
-// builds where dispatch is deliberately disabled (the local default), so the
-// app can be built and tested without provisioning the Workflow runtime.
-// Production enables this flag as part of its deployment configuration.
-export default process.env.WORKFLOWS_ENABLED === "true"
-  ? withWorkflow(nextConfig)
-  : nextConfig;
+// The Workflow SDK generates the internal webhook routes that dispatch and run
+// queued agent jobs. It applies everywhere so queuing a job actually executes
+// it — locally and in production alike.
+export default withWorkflow(nextConfig);
