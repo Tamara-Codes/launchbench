@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { addDays, dayKey } from "@/lib/ops-dates";
+import { addDays, dayKey, monthBounds } from "@/lib/ops-dates";
 
 /**
  * One snapshot of "where the company stands right now", assembled from SQL.
@@ -63,6 +63,46 @@ export type CockpitSnapshot = {
 
 /** How far ahead the cockpit looks. A week is what fits on one screen. */
 const HORIZON_DAYS = 7;
+
+export type ScheduledPost = { id: string; hook: string; content_type: string; platform: string; status: string; scheduled_for: string; product_id: string };
+
+export type MonthSnapshot = {
+  month: string;
+  projects: OpsProject[];
+  events: OpsEvent[];
+  tasks: OpsTask[];
+  /**
+   * Scheduled content shown read-only. The content agent owns these rows; the
+   * calendar unions them in rather than copying them, so there is still exactly
+   * one home for a post.
+   */
+  posts: ScheduledPost[];
+};
+
+/** Everything dated inside one month, for the calendar grid. */
+export async function loadMonth(workspaceId: string, month: string): Promise<MonthSnapshot> {
+  const supabase = await createClient();
+  const { first, last } = monthBounds(month);
+  // The grid shows leading and trailing days from the neighbouring months, so
+  // widen the query by a week at each end rather than leaving those cells blank.
+  const from = addDays(first, -7);
+  const to = addDays(last, 7);
+
+  const [{ data: projects }, { data: events }, { data: tasks }, { data: posts }] = await Promise.all([
+    supabase.from("products").select("id, name").eq("workspace_id", workspaceId).eq("active", true).order("name"),
+    supabase.from("ops_events").select("id, title, kind, starts_at, ends_at, all_day, location, recurrence, notes, product_id").eq("workspace_id", workspaceId).gte("starts_at", `${from}T00:00:00`).lte("starts_at", `${to}T23:59:59`).order("starts_at"),
+    supabase.from("ops_tasks").select("id, title, status, priority, due_on, notes, product_id").eq("workspace_id", workspaceId).neq("status", "dropped").gte("due_on", from).lte("due_on", to).order("due_on"),
+    supabase.from("content_items").select("id, hook, content_type, platform, status, scheduled_for, product_id").eq("workspace_id", workspaceId).not("scheduled_for", "is", null).gte("scheduled_for", `${from}T00:00:00`).lte("scheduled_for", `${to}T23:59:59`).order("scheduled_for"),
+  ]);
+
+  return {
+    month,
+    projects: (projects ?? []) as OpsProject[],
+    events: (events ?? []) as OpsEvent[],
+    tasks: (tasks ?? []) as OpsTask[],
+    posts: (posts ?? []) as ScheduledPost[],
+  };
+}
 
 export async function loadCockpit(workspaceId: string): Promise<CockpitSnapshot> {
   const supabase = await createClient();

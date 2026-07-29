@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { BriefcaseBusiness, CalendarDays, Check, ChevronDown, Images, MapPin, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
+import { BriefcaseBusiness, CalendarDays, CalendarRange, Check, ChevronDown, Images, MapPin, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -23,12 +23,12 @@ const agentNavigation = {
   content: [
     { href: "/app/content", label: "Content Studio", icon: PenLine },
     { href: "/app/media", label: "Media Library", icon: Images },
-    { href: "/app/content-calendar", label: "Content Calendar", icon: Workflow },
     { href: "/app/content-history", label: "Content History", icon: Workflow },
   ],
 };
 const sharedNavigation = [
   { href: "/app", label: "Today", icon: CalendarDays },
+  { href: "/app/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/app/agents", label: "Agents", icon: Workflow },
   { href: "/app/products", label: "Products", icon: Package },
   { href: "/app/settings", label: "Settings", icon: Settings },

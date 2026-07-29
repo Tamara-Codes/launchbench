@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarPlus, Check, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Badge, Button, Input, Label, Textarea } from "./ui";
 import { Select } from "./ui-select";
+import { DatePicker, DateTimePicker } from "./ui-date-picker";
 import { toast } from "./toast";
 import { cn } from "@/lib/utils";
 import { createOpsEvent, createOpsTask, deleteOpsEvent, deleteOpsTask, setOpsTaskStatus } from "@/server/ops-actions";
@@ -163,7 +164,7 @@ export function OpsQuickAdd({ projects, defaultDue }: { projects: OpsProject[]; 
         placeholder="Add a task…"
         className="h-8 flex-1 border-0 bg-transparent px-0 focus-visible:ring-0"
       />
-      <Input type="date" value={dueOn} onChange={(changed) => setDueOn(changed.target.value)} className="h-8 w-36 text-xs" aria-label="Due date" />
+      <DatePicker value={dueOn} onChange={setDueOn} placeholder="No date" ariaLabel="Due date" className="h-8 w-36 text-xs" />
       <Select value={priority} onChange={(changed) => setPriority(changed.target.value)} className="h-8 w-24 text-xs" aria-label="Priority">
         <option value="normal">Normal</option>
         <option value="high">High</option>
@@ -183,9 +184,27 @@ export function OpsQuickAdd({ projects, defaultDue }: { projects: OpsProject[]; 
 // --------------------------------------------------------------------------
 // Event form — collapsed by default; obligations are rarer than tasks
 // --------------------------------------------------------------------------
-export function OpsAddEvent({ projects, defaultDate }: { projects: OpsProject[]; defaultDate: string }) {
+export function OpsAddEvent({
+  projects,
+  defaultDate,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
+}: {
+  projects: OpsProject[];
+  defaultDate: string;
+  /** Controlled mode, so the calendar can open this form for a clicked day. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+}) {
   const { run, loading } = useAction();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const emptyForm = { title: "", kind: "meeting", startsAt: `${defaultDate}T09:00`, endsAt: "", allDay: false, location: "", recurrence: "", notes: "", productId: NO_PROJECT };
   const [form, setForm] = useState(emptyForm);
 
@@ -202,6 +221,7 @@ export function OpsAddEvent({ projects, defaultDate }: { projects: OpsProject[];
   }
 
   if (!open) {
+    if (hideTrigger) return null;
     return (
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <CalendarPlus className="h-3.5 w-3.5" />Add obligation
@@ -241,11 +261,11 @@ export function OpsAddEvent({ projects, defaultDate }: { projects: OpsProject[];
         </div>
         <div className="space-y-1">
           <Label htmlFor="ops-event-start">Starts</Label>
-          <Input id="ops-event-start" type="datetime-local" value={form.startsAt} onChange={(changed) => update("startsAt", changed.target.value)} required />
+          <DateTimePicker id="ops-event-start" value={form.startsAt} onChange={(next) => update("startsAt", next)} required />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ops-event-end">Ends (optional)</Label>
-          <Input id="ops-event-end" type="datetime-local" value={form.endsAt} onChange={(changed) => update("endsAt", changed.target.value)} />
+          <DateTimePicker id="ops-event-end" value={form.endsAt} onChange={(next) => update("endsAt", next)} placeholder="No end" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ops-event-location">Where (optional)</Label>

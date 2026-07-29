@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  addMonths,
   dayKey,
+  dayNumber,
   daysFromToday,
   fromDateTimeLocalValue,
+  monthBounds,
+  monthGridDays,
+  monthKey,
+  monthLabel,
   relativeDayLabel,
   startOfDay,
   timeLabel,
@@ -92,6 +98,55 @@ describe("datetime-local round trip", () => {
   it("rejects a well-shaped but impossible date", () => {
     expect(() => fromDateTimeLocalValue("2026-02-30T10:00")).toThrow();
     expect(() => fromDateTimeLocalValue("2026-13-01T10:00")).toThrow();
+  });
+});
+
+describe("month grids", () => {
+  it("shifts months and wraps the year in both directions", () => {
+    expect(addMonths("2026-07", 1)).toBe("2026-08");
+    expect(addMonths("2026-12", 1)).toBe("2027-01");
+    expect(addMonths("2026-01", -1)).toBe("2025-12");
+    expect(addMonths("2026-07", -7)).toBe("2025-12");
+  });
+
+  it("finds month bounds including February in a leap and non-leap year", () => {
+    expect(monthBounds("2026-07")).toEqual({ first: "2026-07-01", last: "2026-07-31" });
+    expect(monthBounds("2026-02")).toEqual({ first: "2026-02-01", last: "2026-02-28" });
+    expect(monthBounds("2028-02")).toEqual({ first: "2028-02-01", last: "2028-02-29" });
+    expect(monthBounds("2026-12")).toEqual({ first: "2026-12-01", last: "2026-12-31" });
+  });
+
+  it("builds a Monday-first grid of whole weeks", () => {
+    const july = monthGridDays("2026-07");
+    // 1 July 2026 is a Wednesday, so the grid opens on Monday 29 June.
+    expect(july[0]).toBe("2026-06-29");
+    expect(july.length % 7).toBe(0);
+    expect(july).toContain("2026-07-01");
+    expect(july).toContain("2026-07-31");
+    // 31 July 2026 is a Friday, so the grid closes on Sunday 2 August.
+    expect(july.at(-1)).toBe("2026-08-02");
+  });
+
+  it("builds a grid for a month that already starts on a Monday", () => {
+    // 1 June 2026 is a Monday: no leading days from May.
+    const june = monthGridDays("2026-06");
+    expect(june[0]).toBe("2026-06-01");
+    expect(june.length % 7).toBe(0);
+  });
+
+  it("spans DST transitions without dropping or repeating a day", () => {
+    for (const month of ["2026-03", "2026-10"]) {
+      const days = monthGridDays(month);
+      expect(new Set(days).size).toBe(days.length);
+      expect(days.length % 7).toBe(0);
+    }
+  });
+
+  it("names the month and the day number", () => {
+    expect(monthLabel("2026-07")).toBe("July 2026");
+    expect(monthKey("2026-07-29")).toBe("2026-07");
+    expect(dayNumber("2026-07-01")).toBe("1");
+    expect(dayNumber("2026-07-29")).toBe("29");
   });
 });
 

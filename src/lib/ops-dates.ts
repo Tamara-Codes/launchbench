@@ -46,6 +46,54 @@ export function addDays(key: string, days: number): string {
   return dayKey(new Date(startOfDay(key).getTime() + days * 86_400_000 + 43_200_000));
 }
 
+/** The month a day belongs to, as "YYYY-MM". */
+export function monthKey(key: string = dayKey()): string {
+  return key.slice(0, 7);
+}
+
+/** Shifts a "YYYY-MM" key by whole months, wrapping the year. */
+export function addMonths(month: string, months: number): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const zeroBased = (year ?? 0) * 12 + (monthNumber ?? 1) - 1 + months;
+  return `${Math.floor(zeroBased / 12)}-${String((zeroBased % 12) + 1).padStart(2, "0")}`;
+}
+
+/** First and last day of a month, as day keys. */
+export function monthBounds(month: string): { first: string; last: string } {
+  const first = `${month}-01`;
+  return { first, last: addDays(addMonths(month, 1) + "-01", -1) };
+}
+
+/**
+ * Every day key in the Monday-first grid covering a month, including the
+ * leading and trailing days of the neighbouring months so the grid is a
+ * complete rectangle.
+ */
+export function monthGridDays(month: string): string[] {
+  const { first, last } = monthBounds(month);
+  // getUTCDay on the day-start instant would be shifted; read the weekday in
+  // the operating zone instead. Monday is 0 here.
+  const weekdayIndex = (key: string) => {
+    const name = new Intl.DateTimeFormat("en-GB", { timeZone: OPS_TIMEZONE, weekday: "short" }).format(startOfDay(key));
+    return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(name);
+  };
+  const start = addDays(first, -weekdayIndex(first));
+  const end = addDays(last, 6 - weekdayIndex(last));
+  const days: string[] = [];
+  for (let key = start; key <= end; key = addDays(key, 1)) days.push(key);
+  return days;
+}
+
+/** "July 2026" — the month heading. */
+export function monthLabel(month: string): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: OPS_TIMEZONE, month: "long", year: "numeric" }).format(startOfDay(`${month}-01`));
+}
+
+/** Just the day number, for a grid cell. */
+export function dayNumber(key: string): string {
+  return String(Number(key.slice(8, 10)));
+}
+
 /** Local clock time for an event row, e.g. "14:30". */
 export function timeLabel(instant: string | Date): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone: OPS_TIMEZONE, hour: "2-digit", minute: "2-digit" }).format(new Date(instant));

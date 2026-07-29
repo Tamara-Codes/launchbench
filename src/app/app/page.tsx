@@ -7,7 +7,7 @@ import { OpsAddEvent, OpsEventRow, OpsQuickAdd, OpsTaskRow } from "@/components/
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/server/tenant-context";
 import { loadCockpit, type OpsEvent, type OpsTask } from "@/server/ops-cockpit";
-import { dayKey, daysFromToday, relativeDayLabel } from "@/lib/ops-dates";
+import { dayKey, daysFromToday, monthKey, relativeDayLabel } from "@/lib/ops-dates";
 
 export const dynamic = "force-dynamic";
 
@@ -32,11 +32,14 @@ function StripItem({ href, icon, children, tone = "muted" }: { href: string; ico
   );
 }
 
-function SectionTitle({ children, count }: { children: React.ReactNode; count?: number }) {
+function SectionTitle({ children, count, action }: { children: React.ReactNode; count?: number; action?: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-2 px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">{children}</h2>
-      {count !== undefined && count > 0 && <span className="text-xs text-muted">{count}</span>}
+    <div className="flex items-baseline justify-between px-1">
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">{children}</h2>
+        {count !== undefined && count > 0 && <span className="text-xs text-muted">{count}</span>}
+      </div>
+      {action}
     </div>
   );
 }
@@ -92,12 +95,15 @@ export default async function WorkspaceHomePage() {
               {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
             </span>
             {nextDeadline && deadlineDays !== null && (
-              <span className={`flex items-center gap-1.5 ${deadlineDays <= 7 ? "text-danger" : "text-muted"}`}>
-                <Receipt className="h-3.5 w-3.5" />
+              <StripItem
+                href={`/app/calendar?m=${monthKey(dayKey(new Date(nextDeadline.starts_at)))}`}
+                icon={<Receipt className="h-3.5 w-3.5" />}
+                tone={deadlineDays <= 7 ? "danger" : "muted"}
+              >
                 {nextDeadline.title} {deadlineDays === 0 ? "today" : `in ${deadlineDays}d`}
-              </span>
+              </StripItem>
             )}
-            <StripItem href="/app/content-calendar" icon={<CalendarClock className="h-3.5 w-3.5" />}>
+            <StripItem href="/app/calendar" icon={<CalendarClock className="h-3.5 w-3.5" />}>
               Posts today {counts.postsToday}/{POSTS_PER_DAY_TARGET}
             </StripItem>
             {counts.overdue > 0 && (
@@ -144,7 +150,9 @@ export default async function WorkspaceHomePage() {
           </Card>
 
           <section className="space-y-2">
-            <SectionTitle>Next 7 days</SectionTitle>
+            <SectionTitle action={<Link href="/app/calendar" className="text-xs text-accent hover:underline">Open calendar</Link>}>
+              Next 7 days
+            </SectionTitle>
             {upcomingDays.length === 0 ? (
               <p className="rounded-lg border border-dashed px-3 py-4 text-sm text-muted">The week ahead is clear.</p>
             ) : (
