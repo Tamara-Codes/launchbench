@@ -18,6 +18,7 @@
     "db:push": "supabase db push"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.103",
     "@composio/core": "^0.13.1",
     "@fontsource-variable/manrope": "^5.2.8",
     "@google/genai": "^1.28.0",
@@ -26,6 +27,7 @@
     "@radix-ui/react-select": "^2.3.3",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.109.0",
+    "ai": "^6.0.238",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firecrawl": "^4.3.5",

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { TenantSidebar } from "@/components/tenant-sidebar";
+import { OpsChatWidget } from "@/components/ops-chat-widget";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/server/tenant-context";
 import { getCurrentProject } from "@/server/current-project";
@@ -29,6 +30,8 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     <div className="flex min-h-[100dvh] flex-col md:flex-row">
       <TenantSidebar workspaceName={context.workspace.name} products={products ?? []} currentProjectId={currentProject?.id ?? null} salesAgent={salesAgent} contentAgent={contentAgent} />
       <div className="min-w-0 flex-1">{children}</div>
+      {/* Every page, not just Today: thoughts arrive wherever she happens to be. */}
+      <OpsChatWidget />
     </div>
   );
 }
