@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { BriefcaseBusiness, Check, ChevronDown, Images, LayoutDashboard, MapPin, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
+import { BriefcaseBusiness, CalendarDays, Check, ChevronDown, Images, MapPin, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -28,7 +28,7 @@ const agentNavigation = {
   ],
 };
 const sharedNavigation = [
-  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/app", label: "Today", icon: CalendarDays },
   { href: "/app/agents", label: "Agents", icon: Workflow },
   { href: "/app/products", label: "Products", icon: Package },
   { href: "/app/settings", label: "Settings", icon: Settings },

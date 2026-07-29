@@ -38,10 +38,23 @@ order. Do not skip a file:
 9. `migrations/202607160009_tenant_gmail_connection.sql`
 10. `migrations/202607160010_workspace_agent_settings.sql`
 11. `migrations/202607160011_rename_nos_astra_workspace.sql`
+12. `migrations/202607180001_update_content_agent_description.sql`
+13. `migrations/202607180002_remove_workspace_agent_versions.sql`
+14. `migrations/202607180003_add_workspace_agent_avatar_color.sql`
+15. `migrations/202607290001_ops_cockpit.sql`
 
 Together they create workspaces, product-scoped templates, integration
-connections, durable job records, Sales Agent data, private media storage, and
-Row Level Security policies.
+connections, durable job records, Sales Agent data, private media storage, the
+ops cockpit's tasks and calendar, and Row Level Security policies.
+
+## 3a. Seed the operator's own data (optional, not schema)
+
+`seeds/` holds one-off data scripts that are deliberately **not** migrations,
+because they contain one operator's projects rather than schema every tenant
+should receive. They are written to be safe to re-run: existing rows always win.
+
+- `seeds/202607290001_ops_cockpit_projects.sql` — the nine projects as `products`
+  rows plus the personal-brand `content_strategies` record.
 
 ## 4. Configure OAuth providers
 
