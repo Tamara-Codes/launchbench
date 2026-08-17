@@ -12,8 +12,8 @@ message and publish decision.
 - Find and qualify relevant business leads.
 - Research prospects and retain useful contact context.
 - Prepare outreach campaigns, email drafts, and follow-ups for review.
-- Create product-specific social post ideas, captions, images, and content plans.
-- Keep products, agent work, media, and activity organized per workspace.
+- Create project-specific social post ideas, captions, images, and content plans.
+- Keep projects, agent work, media, and activity organized per workspace.
 
 Launchbench is designed as a multi-tenant SaaS product. Workspace data and
 authentication are backed by Supabase; external providers support AI generation,
@@ -24,7 +24,7 @@ web research, and Gmail connectivity.
 - **Human approval first.** Launchbench prepares work; it does not send email or
   publish content without a person’s review.
 - **Useful context, not generic output.** Work is grounded in the selected
-  product, saved leads, and workspace history.
+  project, saved leads, and workspace history.
 - **Focused agents.** Each agent has a specific job rather than pretending to be
   an open-ended chatbot.
 

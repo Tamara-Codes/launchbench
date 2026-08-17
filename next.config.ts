@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
-    // Product reference photos regularly exceed Next's 1 MB Server Action
+    // Project reference photos regularly exceed Next's 1 MB Server Action
     // default. Keep uploads bounded while allowing normal phone exports.
     serverActions: {
       bodySizeLimit: "10mb",
@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
     // @vercel/queue dynamically loads Vercel CLI configuration. Bundling it
     // into Workflow's generated webhook removes the module filename it needs.
     "@vercel/queue",
+    // OpenTelemetry's Node SDK resolves instrumentation modules with dynamic
+    // require() calls the bundler can't statically analyze.
+    "@opentelemetry/sdk-node",
+    "@langfuse/otel",
   ],
 };
 

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "suggestions.placePrediction.placeId,suggestions.placePrediction.text" },
-      body: JSON.stringify({ input: parsed.data.input, includedPrimaryTypes: ["(cities)"] }),
+      body: JSON.stringify({ input: parsed.data.input }),
       cache: "no-store",
     });
     if (!response.ok) throw new Error("Google Places request failed");

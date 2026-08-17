@@ -7,6 +7,14 @@ export interface StructuredGenerationRequest<T> {
   schema: z.ZodType<T, z.ZodTypeDef, unknown>;
   schemaName: string;
   temperature?: number;
+  /** Defaults to 8192 if omitted. Set higher for schemas with several
+   * repeated items (e.g. a multi-step email sequence) so Gemini doesn't
+   * hit the cap mid-array and return truncated, unparseable JSON. */
+  maxOutputTokens?: number;
+  /** Stable Langfuse generation name. Defaults to schemaName. */
+  observationName?: string;
+  /** Identifiers belong in metadata, never in the low-cardinality name. */
+  observationMetadata?: Record<string, unknown>;
 }
 
 export interface TextGenerationRequest {

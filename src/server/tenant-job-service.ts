@@ -6,7 +6,7 @@ import { getTenantContext } from "./tenant-context";
 
 export const jobRequestSchema = z.object({
   kind: z.enum(["lead_search", "content_generation", "gmail_sync", "send_email", "prepare_follow_ups"]),
-  productId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
   input: z.record(z.string(), z.unknown()).default({}),
   idempotencyKey: z.string().trim().min(8).max(160).optional(),
 });
@@ -24,7 +24,7 @@ export async function queueTenantJob(input: unknown) {
   if (inputSize > MAX_JOB_INPUT_BYTES) throw new Error("Job input is too large.");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("request_agent_job", {
-    requested_product_id: request.productId ?? null,
+    requested_project_id: request.projectId ?? null,
     requested_kind: request.kind,
     requested_input: request.input,
     requested_idempotency_key: request.idempotencyKey ?? randomUUID(),

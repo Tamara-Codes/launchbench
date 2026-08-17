@@ -5,4 +5,4 @@ export const siteUrl = new URL(rawSiteUrl);
 
 export const siteName = "Launchbench";
 export const siteDescription =
-  "Launchbench helps builders find qualified leads, prepare outreach, and create product-specific social content with human approval at every step.";
+  "Launchbench helps builders find qualified leads, prepare outreach, and create project-specific social content with human approval at every step.";

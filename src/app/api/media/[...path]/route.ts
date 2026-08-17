@@ -23,7 +23,7 @@ export async function GET(
     path.length !== 4 ||
     !path.every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("/") && !segment.includes("\\")) ||
     !(
-      (path[0] === "uploads" && path[1] === "products") ||
+      (path[0] === "uploads" && path[1] === "projects") ||
       (path[0] === "generated" && path[1] === "social")
     )
   ) {

@@ -38,6 +38,17 @@
   @keyframes ops-launcher-in { from { opacity: 0; } to { opacity: 1; } }
 }
 
+/* Modal dialog entry. The panel keeps its centering transform, so it scales
+   around its own middle rather than sliding out of position. */
+@keyframes dialog-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialog-panel-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 :root {
   color-scheme: dark;
   --canvas: #111316;

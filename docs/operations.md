@@ -40,7 +40,7 @@ Restore procedure:
 2. Restore database and storage into a new Supabase project first.
 3. Run the two-user isolation test and verify a sample workspace's media paths.
 4. Point a staging Vercel deployment at the restored project and test login,
-   products, jobs, and generated content.
+   projects, jobs, and generated content.
 5. Only then switch production traffic. Record the incident and rotate any
    keys suspected to have been exposed.
 

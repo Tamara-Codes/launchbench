@@ -7,7 +7,7 @@ describe("OAuth return-path protection", () => {
   const appUrl = "https://app.example.com/auth/callback";
 
   it("keeps normal same-origin application paths", () => {
-    expect(safeInternalPath("/app/products?new=1#form", appUrl)).toBe("/app/products?new=1#form");
+    expect(safeInternalPath("/app/projects?new=1#form", appUrl)).toBe("/app/projects?new=1#form");
   });
 
   it.each(["//attacker.example", "https://attacker.example/x", "javascript:alert(1)", "/\\attacker.example", "not-a-path"]) 

@@ -12,6 +12,7 @@ import {
 import { canTransition, isResumable, isTerminal } from "./run-state";
 import { isPublicUrl, isScrapableDomain, validatePublicUrl } from "./ssrf";
 import { leadAnalysisSchema } from "@/agents/lead-finder/schema";
+import { buildGooglePlacesQuery } from "./lead-search-query";
 import type { QualificationSettings } from "./qualify";
 
 const bounds = {
@@ -19,6 +20,23 @@ const bounds = {
   includedSettlements: ["Bogovići", "Sveti Vid"],
   excludedSettlements: ["Krk", "Punat"],
 };
+
+describe("Google Places query building", () => {
+  it("adds the complete selected territory to plain search terms", () => {
+    expect(buildGooglePlacesQuery("apartmani", "Malinska", "Croatia")).toBe(
+      "apartmani in Malinska, Croatia",
+    );
+  });
+
+  it("supports explicit territory and town placeholders without duplication", () => {
+    expect(
+      buildGooglePlacesQuery("holiday apartments {territory}", "Malinska", "Croatia"),
+    ).toBe("holiday apartments Malinska, Croatia");
+    expect(buildGooglePlacesQuery("apartmani {town}", "Malinska", "Croatia")).toBe(
+      "apartmani Malinska, Croatia",
+    );
+  });
+});
 
 describe("geographic matching", () => {
   it("accepts the town and included settlements (diacritic-insensitive)", () => {
@@ -97,29 +115,29 @@ const qSettings: QualificationSettings = {
   requirePublicEmail: true,
   requireWithinTerritory: true,
   requireWebsite: true,
-  requireIndependent: false,
   minConfidence: 0.5,
-  rejectExistingDigitalGuide: false,
 };
 
 function baseAnalysis() {
   return leadAnalysisSchema.parse({
     businessName: "Villa Mare",
-    accommodationType: "apartments",
+    businessType: "holiday apartment operator",
     location: "Malinska",
-    isInTargetLocation: true,
     website: "https://villa-mare.hr",
     publicEmail: "info@villa-mare.hr",
     publicPhone: "+385912345678",
-    estimatedUnits: 4,
-    languages: ["hr", "en", "de"],
-    directBooking: true,
-    internationalGuestsLikely: true,
-    existingDigitalGuideDetected: false,
-    qualificationReasons: ["4 units", "multilingual"],
-    rejectionReasons: [],
+    matchesProjectExclusion: false,
+    matchedProjectExclusion: "",
+    matchesIdealCustomer: true,
+    offerRelevance: "strong",
+    fitReasons: ["Independent tourist accommodation operator"],
+    disqualifyingReasons: [],
+    emailDraft: {
+      subject: "A clearer welcome for Villa Mare guests",
+      body: "Hello,\n\nI noticed that Villa Mare welcomes guests in Malinska.",
+    },
     confidence: 0.8,
-    verifiedFacts: ["4 apartments"],
+    verifiedFacts: ["Offers holiday apartments in Malinska"],
     inferredFacts: [],
     unknownFields: [],
     sourceEvidence: [{ url: "https://villa-mare.hr", field: "email", snippet: "info@villa-mare.hr" }],
@@ -127,6 +145,11 @@ function baseAnalysis() {
 }
 
 describe("qualification", () => {
+  it("validates a structured email draft as part of candidate analysis", () => {
+    const analysis = baseAnalysis();
+    expect(analysis.emailDraft.subject).toContain("Villa Mare");
+    expect(analysis.emailDraft.body).toContain("Malinska");
+  });
   it("qualifies a complete, in-territory lead with a verbatim email", () => {
     const r = qualifyLead({
       analysis: baseAnalysis(),
@@ -172,6 +195,91 @@ describe("qualification", () => {
       locationText: "Malinska",
     });
     expect(r.outcome).toBe("manualReview");
+  });
+  it("rejects a candidate that does not match the project's ideal customer", () => {
+    const a = baseAnalysis();
+    a.matchesIdealCustomer = false;
+    a.disqualifyingReasons = ["The business is outside the target customer profile"];
+    const r = qualifyLead({
+      analysis: a,
+      sourceEmails: ["info@villa-mare.hr"],
+      bounds,
+      settings: qSettings,
+      locationText: "Malinska",
+    });
+    expect(r.outcome).toBe("rejected");
+    expect(r.rejectionReasons.join(" ")).toMatch(/outside the target customer profile/i);
+  });
+  it("sends weak offer relevance to manual review", () => {
+    const a = baseAnalysis();
+    a.offerRelevance = "weak";
+    const r = qualifyLead({
+      analysis: a,
+      sourceEmails: ["info@villa-mare.hr"],
+      bounds,
+      settings: qSettings,
+      locationText: "Malinska",
+    });
+    expect(r.outcome).toBe("manualReview");
+  });
+  it("matches exclusions across plurals and Google category separators", () => {
+    const a = baseAnalysis();
+    a.businessType = "Local travel agency";
+    const r = qualifyLead({
+      analysis: a,
+      sourceEmails: ["info@villa-mare.hr"],
+      bounds,
+      settings: qSettings,
+      locationText: "Malinska",
+      excludedBusinessTypes: ["travel agencies"],
+      placeTypes: ["travel_agency"],
+    });
+    expect(r.outcome).toBe("rejected");
+    expect(r.rejectionReasons).toContain('Matches project exclusion: "travel agencies"');
+  });
+  it("honors a semantic exclusion only when Gemini names a saved exclusion", () => {
+    const a = baseAnalysis();
+    a.businessType = "Hotel";
+    a.verifiedFacts = ["The property is part of an international hospitality group"];
+    a.matchesProjectExclusion = true;
+    a.matchedProjectExclusion = "large hotel chains";
+    const r = qualifyLead({
+      analysis: a,
+      sourceEmails: ["info@villa-mare.hr"],
+      bounds,
+      settings: qSettings,
+      locationText: "Malinska",
+      excludedBusinessTypes: ["large hotel chains"],
+    });
+    expect(r.outcome).toBe("rejected");
+    expect(r.rejectionReasons).toContain('Matches project exclusion: "large hotel chains"');
+  });
+  it("ignores an exclusion invented by the model", () => {
+    const a = baseAnalysis();
+    a.matchesProjectExclusion = true;
+    a.matchedProjectExclusion = "all accommodation businesses";
+    const r = qualifyLead({
+      analysis: a,
+      sourceEmails: ["info@villa-mare.hr"],
+      bounds,
+      settings: qSettings,
+      locationText: "Malinska",
+      excludedBusinessTypes: ["large hotel chains"],
+    });
+    expect(r.outcome).toBe("qualified");
+  });
+  it("does not match an exclusion inside an unrelated word", () => {
+    const a = baseAnalysis();
+    a.businessType = "Award-winning apartment operator";
+    const r = qualifyLead({
+      analysis: a,
+      sourceEmails: ["info@villa-mare.hr"],
+      bounds,
+      settings: qSettings,
+      locationText: "Malinska",
+      excludedBusinessTypes: ["inn"],
+    });
+    expect(r.outcome).toBe("qualified");
   });
 });
 

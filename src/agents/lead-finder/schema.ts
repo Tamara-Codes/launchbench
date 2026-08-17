@@ -7,23 +7,27 @@ export const sourceEvidenceSchema = z.object({
   snippet: z.string(),
 });
 
-/** Strict schema for the Gemini structured analysis of a single candidate.
- * Every response is validated against this before it can influence the DB. */
+/**
+ * Project-neutral analysis of one candidate. The selected project's context
+ * defines what "ideal customer" and "offer relevance" mean for each call.
+ */
 export const leadAnalysisSchema = z.object({
   businessName: z.string(),
-  accommodationType: z.string(),
+  businessType: z.string(),
   location: z.string(),
-  isInTargetLocation: z.boolean(),
   website: z.string(),
   publicEmail: z.string(),
   publicPhone: z.string(),
-  estimatedUnits: z.number().int().nonnegative().nullable(),
-  languages: z.array(z.string()),
-  directBooking: z.boolean(),
-  internationalGuestsLikely: z.boolean(),
-  existingDigitalGuideDetected: z.boolean(),
-  qualificationReasons: z.array(z.string()),
-  rejectionReasons: z.array(z.string()),
+  matchesProjectExclusion: z.boolean(),
+  matchedProjectExclusion: z.string(),
+  matchesIdealCustomer: z.boolean(),
+  offerRelevance: z.enum(["strong", "possible", "weak", "none"]),
+  fitReasons: z.array(z.string()),
+  disqualifyingReasons: z.array(z.string()),
+  emailDraft: z.object({
+    subject: z.string(),
+    body: z.string(),
+  }),
   confidence: z.number().min(0).max(1),
   verifiedFacts: z.array(z.string()),
   inferredFacts: z.array(z.string()),
@@ -34,26 +38,43 @@ export const leadAnalysisSchema = z.object({
 export type LeadAnalysis = z.infer<typeof leadAnalysisSchema>;
 
 /**
- * The Gemini `responseSchema` (OpenAPI-style) matching leadAnalysisSchema.
- * `@google/genai` accepts a plain JSON schema object for responseSchema.
+ * Cheap triage result computed from name/category/address alone, before any
+ * page is scraped or the full evidence-based analysis runs.
  */
+export const prefilterSchema = z.object({
+  worthFullReview: z.boolean(),
+  reason: z.string(),
+});
+
+export type PrefilterResult = z.infer<typeof prefilterSchema>;
+
+/** OpenAPI-style response schema accepted by `@google/genai`. */
 export const geminiResponseSchema = {
   type: "object",
   properties: {
     businessName: { type: "string" },
-    accommodationType: { type: "string" },
+    businessType: { type: "string" },
     location: { type: "string" },
-    isInTargetLocation: { type: "boolean" },
     website: { type: "string" },
     publicEmail: { type: "string" },
     publicPhone: { type: "string" },
-    estimatedUnits: { type: "integer", nullable: true },
-    languages: { type: "array", items: { type: "string" } },
-    directBooking: { type: "boolean" },
-    internationalGuestsLikely: { type: "boolean" },
-    existingDigitalGuideDetected: { type: "boolean" },
-    qualificationReasons: { type: "array", items: { type: "string" } },
-    rejectionReasons: { type: "array", items: { type: "string" } },
+    matchesProjectExclusion: { type: "boolean" },
+    matchedProjectExclusion: { type: "string" },
+    matchesIdealCustomer: { type: "boolean" },
+    offerRelevance: {
+      type: "string",
+      enum: ["strong", "possible", "weak", "none"],
+    },
+    fitReasons: { type: "array", items: { type: "string" } },
+    disqualifyingReasons: { type: "array", items: { type: "string" } },
+    emailDraft: {
+      type: "object",
+      properties: {
+        subject: { type: "string" },
+        body: { type: "string" },
+      },
+      required: ["subject", "body"],
+    },
     confidence: { type: "number" },
     verifiedFacts: { type: "array", items: { type: "string" } },
     inferredFacts: { type: "array", items: { type: "string" } },
@@ -73,18 +94,18 @@ export const geminiResponseSchema = {
   },
   required: [
     "businessName",
-    "accommodationType",
+    "businessType",
     "location",
-    "isInTargetLocation",
     "website",
     "publicEmail",
     "publicPhone",
-    "languages",
-    "directBooking",
-    "internationalGuestsLikely",
-    "existingDigitalGuideDetected",
-    "qualificationReasons",
-    "rejectionReasons",
+    "matchesProjectExclusion",
+    "matchedProjectExclusion",
+    "matchesIdealCustomer",
+    "offerRelevance",
+    "fitReasons",
+    "disqualifyingReasons",
+    "emailDraft",
     "confidence",
     "verifiedFacts",
     "inferredFacts",

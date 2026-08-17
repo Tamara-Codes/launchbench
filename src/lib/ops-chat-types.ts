@@ -21,6 +21,6 @@ export type OpsFact = {
   kind: string;
   body: string;
   source: string;
-  product_id: string | null;
+  project_id: string | null;
   updated_at: string;
 };

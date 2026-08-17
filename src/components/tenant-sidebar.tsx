@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { BriefcaseBusiness, CalendarDays, CalendarRange, Check, ChevronDown, Images, MapPin, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
+import { usePathname } from "next/navigation";
+
+import { BriefcaseBusiness, Images, ListTodo, MapPin, Package, PenLine, Settings, Sparkles, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AgentAvatar } from "@/components/agent-avatar";
-import { setCurrentProject } from "@/server/current-project-actions";
 
-type Product = { id: string; name: string; active: boolean };
 type Agent = "sales" | "content";
 
 const agentNavigation = {
@@ -27,31 +25,17 @@ const agentNavigation = {
   ],
 };
 const sharedNavigation = [
-  { href: "/app", label: "Today", icon: CalendarDays },
-  { href: "/app/calendar", label: "Calendar", icon: CalendarRange },
+  { href: "/app", label: "ToDo", icon: ListTodo },
   { href: "/app/agents", label: "Agents", icon: Workflow },
-  { href: "/app/products", label: "Products", icon: Package },
+  { href: "/app/projects", label: "Projects", icon: Package },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 
 function agentForPath(pathname: string): Agent { return pathname.startsWith("/app/content") ? "content" : "sales"; }
 
-export function TenantSidebar({ workspaceName, products, currentProjectId, salesAgent, contentAgent }: { workspaceName: string; products: Product[]; currentProjectId: string | null; salesAgent: { name: string; avatar_color: string }; contentAgent: { name: string; avatar_color: string } }) {
+export function TenantSidebar({ workspaceName, salesAgent, contentAgent }: { workspaceName: string; salesAgent: { name: string; avatar_color: string }; contentAgent: { name: string; avatar_color: string } }) {
   const pathname = usePathname();
-  const router = useRouter();
   const agent = agentForPath(pathname);
-  const [productMenuOpen, setProductMenuOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const selectedProduct = products.find((product) => product.id === currentProjectId);
-
-  function selectProject(productId: string) {
-    setProductMenuOpen(false);
-    if (productId === currentProjectId) return;
-    startTransition(async () => {
-      await setCurrentProject(productId);
-      router.refresh();
-    });
-  }
 
   return (
     <>
@@ -62,11 +46,6 @@ export function TenantSidebar({ workspaceName, products, currentProjectId, sales
       <aside className="sidebar-shell hidden w-[260px] shrink-0 font-mono md:sticky md:top-0 md:flex md:h-[100dvh] md:flex-col">
         <div className="border-b border-border px-4 py-5">
           <BrandLogo href="/app/sales" compact />
-          <div className="relative mt-5">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Current project</p>
-            {products.length ? <button type="button" onClick={() => setProductMenuOpen((open) => !open)} className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-surface2 px-3 py-2.5 text-left text-sm font-semibold text-ink-strong hover:bg-accent-soft"><span className="truncate">{selectedProduct?.name ?? "Choose project"}</span><ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", productMenuOpen && "rotate-180")} /></button> : <Link href="/app/products/new" className="block rounded-lg border border-dashed border-border px-3 py-2.5 text-sm font-medium text-accent">Add your first project</Link>}
-            {productMenuOpen && <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-xl">{products.filter((product) => product.active).map((product) => { const selected = product.id === currentProjectId; return <button key={product.id} type="button" disabled={pending} onClick={() => selectProject(product.id)} className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium disabled:opacity-60", selected ? "bg-accent-soft text-accent" : "text-ink hover:bg-surface2")}><span className="min-w-0 flex-1 truncate">{product.name}</span>{selected && <Check className="h-4 w-4" />}</button>; })}<Link href="/app/products" onClick={() => setProductMenuOpen(false)} className="mt-1 flex items-center gap-2 border-t border-border px-3 py-2.5 text-sm text-muted hover:text-ink"><Package className="h-4 w-4" />Manage projects</Link></div>}
-          </div>
         </div>
         <div className="mx-3 mt-4 grid grid-cols-2 gap-1 rounded-lg bg-surface2 p-1">
           <Link href="/app/sales" className={cn("flex min-w-0 items-center justify-center gap-2 rounded-md px-2 py-1.5 text-center text-xs font-semibold", agent === "sales" ? "bg-surface text-ink-strong shadow-sm" : "text-muted hover:text-ink")}><AgentAvatar name={salesAgent.name} color={salesAgent.avatar_color} size="xs" /><span className="truncate">{salesAgent.name}</span></Link>

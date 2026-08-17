@@ -11,9 +11,9 @@ type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: 
 /**
  * "no project" arrives as "none" from the Radix Select (which reserves "") or as
  * "" from anything else calling these actions. Company-level obligations — tax,
- * admin, outreach for the business itself — genuinely belong to no product.
+ * admin, outreach for the business itself — genuinely belong to no project.
  */
-const optionalProductId = z
+const optionalProjectId = z
   .union([z.string().uuid(), z.literal(""), z.literal("none")])
   .default("none")
   .transform((value) => (value === "" || value === "none" ? null : value));
@@ -21,7 +21,7 @@ const optionalDate = z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal
 
 const taskSchema = z.object({
   title: z.string().trim().min(1).max(300),
-  productId: optionalProductId,
+  projectId: optionalProjectId,
   dueOn: optionalDate,
   priority: z.enum(["low", "normal", "high"]).default("normal"),
   notes: z.string().max(4_000).default(""),
@@ -29,7 +29,7 @@ const taskSchema = z.object({
 
 const eventSchema = z.object({
   title: z.string().trim().min(1).max(300),
-  productId: optionalProductId,
+  projectId: optionalProjectId,
   kind: z.enum(["meeting", "deadline", "tax", "admin", "focus"]).default("meeting"),
   // datetime-local carries no zone, so resolve it against OPS_TIMEZONE here
   // rather than letting Postgres assume UTC and shift every meeting.
@@ -64,7 +64,7 @@ export async function createOpsTask(input: unknown): Promise<ActionResult<{ id: 
     const supabase = await createClient();
     const { data, error } = await supabase.from("ops_tasks").insert({
       workspace_id: context.workspace.id,
-      product_id: values.productId,
+      project_id: values.projectId,
       title: values.title,
       due_on: values.dueOn,
       priority: values.priority,
@@ -83,7 +83,7 @@ export async function updateOpsTask(id: string, input: unknown): Promise<ActionR
     await requireWriter();
     const supabase = await createClient();
     const { error } = await supabase.from("ops_tasks").update({
-      product_id: values.productId,
+      project_id: values.projectId,
       title: values.title,
       due_on: values.dueOn,
       priority: values.priority,
@@ -97,10 +97,10 @@ export async function updateOpsTask(id: string, input: unknown): Promise<ActionR
 
 /** completed_at and status move together — the table has a check constraint
  * tying them, so a half-update fails loudly rather than drifting. */
-export async function setOpsTaskStatus(id: string, status: "open" | "done" | "dropped"): Promise<ActionResult> {
+export async function setOpsTaskStatus(id: string, status: "backlog" | "in_progress" | "done" | "dropped"): Promise<ActionResult> {
   try {
     const taskId = z.string().uuid().parse(id);
-    const nextStatus = z.enum(["open", "done", "dropped"]).parse(status);
+    const nextStatus = z.enum(["backlog", "in_progress", "done", "dropped"]).parse(status);
     await requireWriter();
     const supabase = await createClient();
     const { error } = await supabase.from("ops_tasks").update({
@@ -108,6 +108,37 @@ export async function setOpsTaskStatus(id: string, status: "open" | "done" | "dr
       completed_at: nextStatus === "done" ? new Date().toISOString() : null,
     }).eq("id", taskId);
     if (error) throw new Error(error.message);
+    revalidateCockpit();
+    return { ok: true };
+  } catch (error) { return failure(error); }
+}
+
+const reorderSchema = z.array(z.object({
+  id: z.string().uuid(),
+  status: z.enum(["backlog", "in_progress", "done", "dropped"]),
+  sortOrder: z.number().int().min(0),
+})).max(500);
+
+/** One drag on the todo board can touch every card in the source and
+ * destination columns, so this takes the whole batch rather than one row. */
+export async function reorderOpsTasks(updates: unknown): Promise<ActionResult> {
+  try {
+    const values = reorderSchema.parse(updates);
+    await requireWriter();
+    const supabase = await createClient();
+    // Need each row's prior status first: reordering already-done cards within
+    // the Done column must not stamp a fresh completed_at over the real one.
+    const { data: existing, error: fetchError } = await supabase
+      .from("ops_tasks").select("id, status, completed_at").in("id", values.map((update) => update.id));
+    if (fetchError) throw new Error(fetchError.message);
+    const priorById = new Map((existing ?? []).map((row) => [row.id, row]));
+    const results = await Promise.all(values.map((update) => {
+      const prior = priorById.get(update.id);
+      const completedAt = update.status !== "done" ? null : prior?.status === "done" ? prior.completed_at : new Date().toISOString();
+      return supabase.from("ops_tasks").update({ status: update.status, sort_order: update.sortOrder, completed_at: completedAt }).eq("id", update.id);
+    }));
+    const failed = results.find((result) => result.error);
+    if (failed?.error) throw new Error(failed.error.message);
     revalidateCockpit();
     return { ok: true };
   } catch (error) { return failure(error); }
@@ -132,7 +163,7 @@ export async function createOpsEvent(input: unknown): Promise<ActionResult<{ id:
     const supabase = await createClient();
     const { data, error } = await supabase.from("ops_events").insert({
       workspace_id: context.workspace.id,
-      product_id: values.productId,
+      project_id: values.projectId,
       title: values.title,
       kind: values.kind,
       starts_at: values.startsAt,
@@ -155,7 +186,7 @@ export async function updateOpsEvent(id: string, input: unknown): Promise<Action
     await requireWriter();
     const supabase = await createClient();
     const { error } = await supabase.from("ops_events").update({
-      product_id: values.productId,
+      project_id: values.projectId,
       title: values.title,
       kind: values.kind,
       starts_at: values.startsAt,

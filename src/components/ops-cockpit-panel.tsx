@@ -1,16 +1,16 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, Check, Loader2, Plus, Trash2, X } from "lucide-react";
-import { Badge, Button, Input, Label, Textarea } from "./ui";
+import { CalendarPlus, Loader2 } from "lucide-react";
+import { Button, Input, Label, Textarea } from "./ui";
 import { Select } from "./ui-select";
-import { DatePicker, DateTimePicker } from "./ui-date-picker";
+import { DateTimePicker } from "./ui-date-picker";
+import { Dialog, DialogContent, DialogTrigger } from "./ui-dialog";
 import { toast } from "./toast";
-import { cn } from "@/lib/utils";
-import { createOpsEvent, createOpsTask, deleteOpsEvent, deleteOpsTask, setOpsTaskStatus } from "@/server/ops-actions";
-import { daysFromToday, timeLabel } from "@/lib/ops-dates";
-import type { OpsEvent, OpsProject, OpsTask } from "@/server/ops-cockpit";
+import { createOpsEvent } from "@/server/ops-actions";
+import { dayLabel } from "@/lib/ops-dates";
+import type { OpsProject } from "@/server/ops-cockpit";
 
 type ActionResult<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -46,143 +46,10 @@ function useAction() {
   return { run, loading: busy || pending };
 }
 
-const priorityTone = { high: "danger", normal: "neutral", low: "neutral" } as const;
-
-const kindTone = { meeting: "accent", deadline: "danger", tax: "warning", admin: "neutral", focus: "info" } as const;
-const kindLabel = { meeting: "Meeting", deadline: "Deadline", tax: "Tax", admin: "Admin", focus: "Focus" } as const;
-
-function projectName(projects: OpsProject[], id: string | null) {
-  return id ? projects.find((project) => project.id === id)?.name : undefined;
-}
-
 // --------------------------------------------------------------------------
-// Task row — a checkbox, not a button, because completing is the common action
-// --------------------------------------------------------------------------
-export function OpsTaskRow({ task, projects, today, showProject = true }: { task: OpsTask; projects: OpsProject[]; today: string; showProject?: boolean }) {
-  const { run, loading } = useAction();
-  const overdueBy = task.due_on ? -daysFromToday(task.due_on, today) : 0;
-  const project = showProject ? projectName(projects, task.product_id) : undefined;
-
-  return (
-    <li className="group flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface2">
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={task.status === "done"}
-        aria-label={`Mark "${task.title}" done`}
-        disabled={loading}
-        onClick={() => run(() => setOpsTaskStatus(task.id, task.status === "done" ? "open" : "done"))}
-        className={cn(
-          "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
-          task.status === "done" ? "border-success bg-success text-white" : "border-border hover:border-accent",
-        )}
-      >
-        {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : task.status === "done" ? <Check className="h-3 w-3" /> : null}
-      </button>
-      <div className="min-w-0 flex-1">
-        <p className={cn("text-sm leading-snug text-ink", task.status === "done" && "text-muted line-through")}>{task.title}</p>
-        {task.notes && <p className="mt-0.5 truncate text-xs text-muted">{task.notes}</p>}
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        {overdueBy > 0 && <Badge tone="danger">{overdueBy}d late</Badge>}
-        {task.priority === "high" && <Badge tone={priorityTone.high}>High</Badge>}
-        {project && <span className="text-xs text-muted">{project}</span>}
-        <button
-          type="button"
-          aria-label={`Delete "${task.title}"`}
-          disabled={loading}
-          onClick={() => run(() => deleteOpsTask(task.id))}
-          className="rounded p-1 text-muted opacity-0 transition-opacity hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </li>
-  );
-}
-
-// --------------------------------------------------------------------------
-// Event row
-// --------------------------------------------------------------------------
-export function OpsEventRow({ event, projects }: { event: OpsEvent; projects: OpsProject[] }) {
-  const { run, loading } = useAction();
-  const project = projectName(projects, event.product_id);
-
-  return (
-    <li className="group flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface2">
-      <span className="mt-0.5 w-11 shrink-0 text-xs font-semibold tabular-nums text-ink-strong">
-        {event.all_day ? "All day" : timeLabel(event.starts_at)}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-snug text-ink">{event.title}</p>
-        {(event.location || event.notes) && <p className="mt-0.5 truncate text-xs text-muted">{[event.location, event.notes].filter(Boolean).join(" · ")}</p>}
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Badge tone={kindTone[event.kind]}>{kindLabel[event.kind]}</Badge>
-        {project && <span className="text-xs text-muted">{project}</span>}
-        <button
-          type="button"
-          aria-label={`Delete "${event.title}"`}
-          disabled={loading}
-          onClick={() => run(() => deleteOpsEvent(event.id))}
-          className="rounded p-1 text-muted opacity-0 transition-opacity hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </li>
-  );
-}
-
-// --------------------------------------------------------------------------
-// Quick add — one line, because a task you must open a dialog for goes unwritten
-// --------------------------------------------------------------------------
-export function OpsQuickAdd({ projects, defaultDue }: { projects: OpsProject[]; defaultDue?: string }) {
-  const { run, loading } = useAction();
-  const [title, setTitle] = useState("");
-  const [dueOn, setDueOn] = useState(defaultDue ?? "");
-  const [productId, setProductId] = useState(NO_PROJECT);
-  const [priority, setPriority] = useState("normal");
-  const titleRef = useRef<HTMLInputElement>(null);
-
-  async function submit() {
-    if (!title.trim()) return;
-    const added = await run(() => createOpsTask({ title, dueOn, productId, priority, notes: "" }), () => setTitle(""));
-    if (added) titleRef.current?.focus();
-  }
-
-  return (
-    <form
-      onSubmit={(bubbled) => { bubbled.preventDefault(); void submit(); }}
-      className="flex items-center gap-2 rounded-lg border border-dashed bg-surface/50 p-2"
-    >
-      <Plus className="ml-1 h-4 w-4 shrink-0 text-muted" />
-      <Input
-        ref={titleRef}
-        value={title}
-        onChange={(changed) => setTitle(changed.target.value)}
-        placeholder="Add a task…"
-        className="h-8 flex-1 border-0 bg-transparent px-0 focus-visible:ring-0"
-      />
-      <DatePicker value={dueOn} onChange={setDueOn} placeholder="No date" ariaLabel="Due date" className="h-8 w-36 text-xs" />
-      <Select value={priority} onChange={(changed) => setPriority(changed.target.value)} className="h-8 w-24 text-xs" aria-label="Priority">
-        <option value="normal">Normal</option>
-        <option value="high">High</option>
-        <option value="low">Low</option>
-      </Select>
-      <Select value={productId} onChange={(changed) => setProductId(changed.target.value)} className="h-8 w-40 text-xs" aria-label="Project">
-        <option value={NO_PROJECT}>No project</option>
-        {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-      </Select>
-      <Button type="submit" size="sm" disabled={loading || !title.trim()}>
-        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Add
-      </Button>
-    </form>
-  );
-}
-
-// --------------------------------------------------------------------------
-// Event form — collapsed by default; obligations are rarer than tasks
+// Event form — a modal, because obligations carry six fields and the calendar
+// opens it for a specific day: a form that pushed the grid down moved the day
+// she had just clicked out from under the pointer.
 // --------------------------------------------------------------------------
 export function OpsAddEvent({
   projects,
@@ -205,7 +72,7 @@ export function OpsAddEvent({
     if (openProp === undefined) setInternalOpen(next);
     onOpenChange?.(next);
   };
-  const emptyForm = { title: "", kind: "meeting", startsAt: `${defaultDate}T09:00`, endsAt: "", allDay: false, location: "", recurrence: "", notes: "", productId: NO_PROJECT };
+  const emptyForm = { title: "", kind: "meeting", startsAt: `${defaultDate}T09:00`, endsAt: "", allDay: false, location: "", recurrence: "", notes: "", projectId: NO_PROJECT };
   const [form, setForm] = useState(emptyForm);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -220,73 +87,78 @@ export function OpsAddEvent({
     });
   }
 
-  if (!open) {
-    if (hideTrigger) return null;
-    return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <CalendarPlus className="h-3.5 w-3.5" />Add obligation
-      </Button>
-    );
-  }
-
   return (
-    <form
-      onSubmit={(bubbled) => { bubbled.preventDefault(); void submit(); }}
-      className="space-y-2.5 rounded-lg border bg-surface2/40 p-3"
-    >
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink-strong">New obligation</p>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Cancel" className="text-muted hover:text-ink">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <Input value={form.title} onChange={(changed) => update("title", changed.target.value)} placeholder="What is it?" autoFocus />
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label htmlFor="ops-event-kind">Kind</Label>
-          <Select id="ops-event-kind" value={form.kind} onChange={(changed) => update("kind", changed.target.value)}>
-            <option value="meeting">Meeting</option>
-            <option value="deadline">Deadline</option>
-            <option value="tax">Tax</option>
-            <option value="admin">Admin</option>
-            <option value="focus">Focus block</option>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="ops-event-project">Project</Label>
-          <Select id="ops-event-project" value={form.productId} onChange={(changed) => update("productId", changed.target.value)}>
-            <option value={NO_PROJECT}>No project (company)</option>
-            {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="ops-event-start">Starts</Label>
-          <DateTimePicker id="ops-event-start" value={form.startsAt} onChange={(next) => update("startsAt", next)} required />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="ops-event-end">Ends (optional)</Label>
-          <DateTimePicker id="ops-event-end" value={form.endsAt} onChange={(next) => update("endsAt", next)} placeholder="No end" />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="ops-event-location">Where (optional)</Label>
-          <Input id="ops-event-location" value={form.location} onChange={(changed) => update("location", changed.target.value)} placeholder="Zoom, café, phone…" />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="ops-event-recurrence">Repeats (optional)</Label>
-          <Input id="ops-event-recurrence" value={form.recurrence} onChange={(changed) => update("recurrence", changed.target.value)} placeholder="every quarter" />
-        </div>
-      </div>
-      <Textarea value={form.notes} onChange={(changed) => update("notes", changed.target.value)} placeholder="Notes (optional)" rows={2} />
-      <label className="flex items-center gap-2 text-xs text-muted">
-        <input type="checkbox" checked={form.allDay} onChange={(changed) => update("allDay", changed.target.checked)} className="h-3.5 w-3.5 rounded border-border" />
-        All day
-      </label>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-        <Button type="submit" size="sm" disabled={loading || !form.title.trim()}>
-          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Add obligation
-        </Button>
-      </div>
-    </form>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <CalendarPlus className="h-3.5 w-3.5" />Add obligation
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent title="New obligation" description={dayLabel(defaultDate)}>
+        <form onSubmit={(bubbled) => { bubbled.preventDefault(); void submit(); }} className="space-y-3.5">
+          <div className="space-y-1.5">
+            <Label htmlFor="ops-event-title">What is it?</Label>
+            <Input
+              id="ops-event-title"
+              value={form.title}
+              onChange={(changed) => update("title", changed.target.value)}
+              placeholder="Call with the accountant"
+              autoFocus
+            />
+          </div>
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="ops-event-kind">Kind</Label>
+              <Select id="ops-event-kind" value={form.kind} onChange={(changed) => update("kind", changed.target.value)}>
+                <option value="meeting">Meeting</option>
+                <option value="deadline">Deadline</option>
+                <option value="tax">Tax</option>
+                <option value="admin">Admin</option>
+                <option value="focus">Focus block</option>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ops-event-project">Project</Label>
+              <Select id="ops-event-project" value={form.projectId} onChange={(changed) => update("projectId", changed.target.value)}>
+                <option value={NO_PROJECT}>No project (company)</option>
+                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ops-event-start">Starts</Label>
+              <DateTimePicker id="ops-event-start" value={form.startsAt} onChange={(next) => update("startsAt", next)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ops-event-end">Ends (optional)</Label>
+              <DateTimePicker id="ops-event-end" value={form.endsAt} onChange={(next) => update("endsAt", next)} placeholder="No end" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ops-event-location">Where (optional)</Label>
+              <Input id="ops-event-location" value={form.location} onChange={(changed) => update("location", changed.target.value)} placeholder="Zoom, café, phone…" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ops-event-recurrence">Repeats (optional)</Label>
+              <Input id="ops-event-recurrence" value={form.recurrence} onChange={(changed) => update("recurrence", changed.target.value)} placeholder="every quarter" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ops-event-notes">Notes (optional)</Label>
+            <Textarea id="ops-event-notes" value={form.notes} onChange={(changed) => update("notes", changed.target.value)} rows={2} />
+          </div>
+          <label className="flex w-fit items-center gap-2 text-xs text-muted">
+            <input type="checkbox" checked={form.allDay} onChange={(changed) => update("allDay", changed.target.checked)} className="h-3.5 w-3.5 rounded border-border" />
+            All day
+          </label>
+          <div className="flex justify-end gap-2 border-t pt-3.5">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" size="sm" disabled={loading || !form.title.trim()}>
+              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Add obligation
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

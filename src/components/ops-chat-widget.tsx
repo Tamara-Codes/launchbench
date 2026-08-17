@@ -46,7 +46,7 @@ const toolVerbs: Record<string, string> = {
 
 function toolArgument(call: ToolCallRecord): string | undefined {
   const input = (call.input ?? {}) as Record<string, unknown>;
-  const candidate = [input.title, input.slug, input.hook, input.query, input.territory, input.project]
+  const candidate = [input.title, input.slug, input.hook, input.query, input.counterparty, input.territory, input.project]
     .find((value) => typeof value === "string" && value.length > 0);
   return typeof candidate === "string" ? candidate : undefined;
 }

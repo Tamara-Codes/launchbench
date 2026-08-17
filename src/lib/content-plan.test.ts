@@ -13,12 +13,12 @@ const guide = {
 };
 
 describe("buildContentPlan", () => {
-  it("creates a product-aware two-day plan without consecutive product repeats", () => {
+  it("creates a project-aware two-day plan without consecutive project repeats", () => {
     const plan = buildContentPlan([mastograd, guide], new Date("2026-07-16T10:00:00Z"));
     expect(plan).toHaveLength(7);
-    expect(plan.map((item) => item.productId)).toContain("mastograd");
-    expect(plan.map((item) => item.productId)).toContain("guide");
-    for (let index = 1; index < plan.length; index++) expect(plan[index]!.productId).not.toBe(plan[index - 1]!.productId);
+    expect(plan.map((item) => item.projectId)).toContain("mastograd");
+    expect(plan.map((item) => item.projectId)).toContain("guide");
+    for (let index = 1; index < plan.length; index++) expect(plan[index]!.projectId).not.toBe(plan[index - 1]!.projectId);
     expect(plan[1]!.scheduledFor.getTime() - plan[0]!.scheduledFor.getTime()).toBe(2 * 24 * 60 * 60 * 1000);
   });
 

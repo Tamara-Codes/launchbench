@@ -152,7 +152,12 @@ export class ComposioGmailProvider {
 
   private async exec(slug: string, userId: string, args: Record<string, unknown>) {
     const client = this.getClient();
-    const res: any = await client.tools.execute(slug, { userId, arguments: args });
+    // Composio requires pinning a toolkit version for manual tool.execute()
+    // calls, or it throws ComposioToolVersionRequiredError. We don't track
+    // Gmail toolkit version numbers ourselves, so opt out of that pinning —
+    // this is a single-user integration, not a multi-tenant surface where an
+    // unpinned toolkit update could silently change behavior for others.
+    const res: any = await client.tools.execute(slug, { userId, arguments: args, dangerouslySkipVersionCheck: true });
     if (res && res.successful === false) {
       throw new Error(`Gmail action ${slug} failed: ${safeErrorMessage(res.error)}`);
     }

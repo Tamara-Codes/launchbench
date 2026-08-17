@@ -3,7 +3,7 @@
 -- ever receive. Run it once, by hand, after 202607290001_ops_cockpit.sql.
 --
 -- Safe to re-run: every insert is guarded by the existing unique constraints
--- (products is unique on (workspace_id, name), content_strategies on product_id),
+-- (projects is unique on (workspace_id, name), content_strategies on project_id),
 -- so anything already present is left exactly as it is.
 --
 -- Targets the workspace's oldest row (there is currently exactly one:
@@ -17,7 +17,7 @@
 with workspace as (
   select id from public.workspaces order by created_at limit 1
 )
-insert into public.products (
+insert into public.projects (
   workspace_id, name, short_description, target_customer, core_benefit,
   price_text, website_url, preferred_language, active
 )
@@ -81,13 +81,13 @@ on conflict (workspace_id, name) do nothing;
 -- This is the document the content agent was previously missing: until now the
 -- pillars existed only in a file nothing but Tamara read.
 insert into public.content_strategies (
-  workspace_id, product_id, primary_platform, primary_audience, brand_voice,
+  workspace_id, project_id, primary_platform, primary_audience, brand_voice,
   core_messages, content_pillars, prohibited_claims, banned_phrases,
   preferred_ctas, hashtag_guidance, advanced_context
 )
 select
-  products.workspace_id,
-  products.id,
+  projects.workspace_id,
+  projects.id,
   'x',
   'Late starters and career changers who would never search "AI engineer" but stop for a human story, plus the higher-intent developers who stay for the builds.',
   'Testimony, not flexing. Rigour, reinvention, realness and generosity — a scientist''s honesty about what actually happened, including the failures. Dry humour. Never hustle-bro.',
@@ -112,15 +112,15 @@ select
   || E'\n\nWHY A POST TRAVELS — it gets reposted when it has all five: universal truth, self-aware irony, a shared enemy, punchy list-to-turn structure, and is inherently repostable ("that''s SO me"). Her best post (4,768 impressions, 201 reposts) had all five.'
   || E'\n\nNEVER — flex MRR; post dry tutorials expecting reach; post in EU daytime; quit over a two-hour-old post; mistake her best reflective posts for slop; copy someone else''s persona.'
   || E'\n\nTEXTURE (thread through every pillar, not a pillar itself) — the mother plus full-time-job reality: park bench, laptop at the kid''s party, smartwatch-to-code-outside. This is what makes her THAT AI engineer rather than AN AI engineer.'
-from public.products
-where products.name = 'Personal Brand'
-  and products.workspace_id = (select id from public.workspaces order by created_at limit 1)
-on conflict (product_id) do nothing;
+from public.projects
+where projects.name = 'Personal Brand'
+  and projects.workspace_id = (select id from public.workspaces order by created_at limit 1)
+on conflict (project_id) do nothing;
 
 -- Check the result: nine projects total (seven added here plus the two that
 -- already existed), and one strategy attached to Personal Brand.
 select p.name, p.preferred_language, p.price_text, (cs.id is not null) as has_strategy
-from public.products p
-left join public.content_strategies cs on cs.product_id = p.id
+from public.projects p
+left join public.content_strategies cs on cs.project_id = p.id
 where p.workspace_id = (select id from public.workspaces order by created_at limit 1)
 order by p.name;

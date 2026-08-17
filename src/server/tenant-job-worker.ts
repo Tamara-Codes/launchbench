@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export type ClaimedTenantJob = {
   id: string;
   workspace_id: string;
-  product_id: string | null;
+  project_id: string | null;
   kind: "lead_search" | "content_generation" | "gmail_sync" | "send_email" | "prepare_follow_ups";
   input: Record<string, unknown>;
   attempt_count: number;

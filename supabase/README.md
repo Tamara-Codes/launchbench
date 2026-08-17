@@ -42,10 +42,34 @@ order. Do not skip a file:
 13. `migrations/202607180002_remove_workspace_agent_versions.sql`
 14. `migrations/202607180003_add_workspace_agent_avatar_color.sql`
 15. `migrations/202607290001_ops_cockpit.sql`
+16. `migrations/202607290002_ops_chat_memory.sql`
+17. `migrations/202607300003_fix_ops_product_fk.sql`
+18. `migrations/202608010001_rename_products_to_projects.sql`
 
-Together they create workspaces, product-scoped templates, integration
+Together they create workspaces, project-scoped templates, integration
 connections, durable job records, Sales Agent data, private media storage, the
-ops cockpit's tasks and calendar, and Row Level Security policies.
+ops cockpit's tasks and calendar, the ops agent's memory, and Row Level
+Security policies.
+
+### Note: deleting a project with cockpit rows attached
+
+`ops_events` and `ops_tasks` originally declared `foreign key (product_id,
+workspace_id) references products(id, workspace_id) on delete set null`. A bare
+`set null` nulls *every* referencing column, and `workspace_id` is `not null`, so
+deleting a project that still had events or tasks attached failed with a not-null
+violation rather than detaching them.
+
+`202607300003_fix_ops_product_fk.sql` repairs both by naming the column that may
+be nulled — `on delete set null (product_id)`, which needs Postgres 15 or newer.
+Any future table referencing `products` through the composite key must name the
+column too. (`202608010001_rename_products_to_projects.sql` later renames the
+table to `projects` and every `product_id` column to `project_id` — this note's
+column names are historical, describing the bug at the time it was fixed.)
+
+`202608010001_rename_products_to_projects.sql` consolidates "product" and
+"project" — used interchangeably since the foundation migration — into a single
+term: project. It renames the `products` table to `projects`, every `product_id`
+column to `project_id`, and updates `request_agent_job()`'s parameter to match.
 
 ## 3a. Seed the operator's own data (optional, not schema)
 
@@ -54,7 +78,10 @@ because they contain one operator's projects rather than schema every tenant
 should receive. They are written to be safe to re-run: existing rows always win.
 
 - `seeds/202607290001_ops_cockpit_projects.sql` — the nine projects as `products`
-  rows plus the personal-brand `content_strategies` record.
+  rows (pre-rename; the table is now `projects`) plus the personal-brand
+  `content_strategies` record.
+- `seeds/202607300001_ops_facts_business.sql` — durable company facts the agent
+  reads every turn, starting with the obrt's registration date.
 
 ## 4. Configure OAuth providers
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, Table, Td, Th, Thead, Tr } from "./ui";
@@ -18,7 +19,7 @@ export function TenantSearchHistory({ runs }: { runs: SalesRun[] }) {
   return <div className="space-y-3">
     {error && <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{error}</p>}
     <div className="overflow-hidden rounded-2xl border"><Table><Thead><Tr><Th>Project</Th><Th>Territory</Th><Th>Stage</Th><Th>Status</Th><Th>Started</Th><Th> </Th></Tr></Thead><tbody>{runs.map((run) => <Tr key={run.id}>
-      <Td className="font-medium text-ink-strong">{run.project}</Td>
+      <Td className="font-medium text-ink-strong"><Link className="hover:underline" href={`/app/search-history/${run.id}`}>{run.project}</Link></Td>
       <Td>{run.territory}</Td>
       <Td>{run.stage}</Td>
       <Td>{run.error || run.status}</Td>

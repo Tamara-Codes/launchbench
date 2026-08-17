@@ -27,7 +27,7 @@ export async function loadFacts(workspaceId: string): Promise<OpsFact[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("ops_facts")
-    .select("id, slug, kind, body, source, product_id, updated_at")
+    .select("id, slug, kind, body, source, project_id, updated_at")
     .eq("workspace_id", workspaceId)
     .order("kind")
     .order("slug");
@@ -108,7 +108,7 @@ async function renderLiveState(workspaceId: string): Promise<string> {
   if (todayEvents.length) {
     lines.push("", "On today:");
     for (const event of todayEvents) {
-      lines.push(`- ${event.all_day ? "all day" : timeLabel(event.starts_at)} ${event.title} [${event.kind}] (${nameOf(event.product_id)})`);
+      lines.push(`- ${event.all_day ? "all day" : timeLabel(event.starts_at)} ${event.title} [${event.kind}] (${nameOf(event.project_id)})`);
     }
   }
 
@@ -116,7 +116,7 @@ async function renderLiveState(workspaceId: string): Promise<string> {
     lines.push("", "Due today or overdue:");
     for (const task of cockpit.dueTasks) {
       const late = task.due_on ? -daysFromToday(task.due_on, today) : 0;
-      lines.push(`- [${task.id}] ${task.title}${late > 0 ? ` (${late}d late)` : ""} (${nameOf(task.product_id)})`);
+      lines.push(`- [${task.id}] ${task.title}${late > 0 ? ` (${late}d late)` : ""} (${nameOf(task.project_id)})`);
     }
   }
 
@@ -128,7 +128,7 @@ async function renderLiveState(workspaceId: string): Promise<string> {
       lines.push(`- ${key} ${event.all_day ? "" : timeLabel(event.starts_at)} ${event.title} [${event.kind}]`);
     }
     for (const task of cockpit.upcomingTasks) {
-      lines.push(`- ${task.due_on} task: ${task.title} (${nameOf(task.product_id)})`);
+      lines.push(`- ${task.due_on} task: ${task.title} (${nameOf(task.project_id)})`);
     }
   }
 
@@ -136,7 +136,7 @@ async function renderLiveState(workspaceId: string): Promise<string> {
     lines.push("", `Undated open tasks (${cockpit.unscheduledTasks.length}):`);
     // Capped: the undated pile can be long, and the agent can search for more.
     for (const task of cockpit.unscheduledTasks.slice(0, 40)) {
-      lines.push(`- [${task.id}] ${task.title} (${nameOf(task.product_id)})`);
+      lines.push(`- [${task.id}] ${task.title} (${nameOf(task.project_id)})`);
     }
     if (cockpit.unscheduledTasks.length > 40) lines.push(`- …and ${cockpit.unscheduledTasks.length - 40} more.`);
   }
@@ -148,7 +148,7 @@ function renderFacts(facts: OpsFact[], projects: { id: string; name: string }[])
   if (!facts.length) return "You have not recorded anything about her yet.";
   return facts
     .map((fact) => {
-      const project = fact.product_id ? projects.find((entry) => entry.id === fact.product_id)?.name : null;
+      const project = fact.project_id ? projects.find((entry) => entry.id === fact.project_id)?.name : null;
       return `- [${fact.slug}] (${fact.kind}${project ? `, ${project}` : ""}) ${fact.body}`;
     })
     .join("\n");
@@ -161,7 +161,7 @@ function renderFacts(facts: OpsFact[], projects: { id: string; name: string }[])
  */
 function rules(): string {
   return [
-    "You are 007, Tamara's ops agent inside Launchbench, her own company dashboard. She named you 007; use it if she asks who you are, and do not make a running joke of it. She is a solo founder running several products at once while holding a full-time job.",
+    "You are 007, Tamara's ops agent inside Launchbench, her own company dashboard. She named you 007; use it if she asks who you are, and do not make a running joke of it. She is a solo founder running several projects at once while holding a full-time job.",
     "",
     "How to behave:",
     "- Be brief and concrete. She is checking in between other work, not reading an essay.",
@@ -172,7 +172,6 @@ function rules(): string {
     "- She works across all her projects at once, so answer across all of them unless she names one.",
     "- Deadlines and tax dates are real obligations: never guess one. If she has not given you the date, ask for it.",
     "- If a question depends on something older than the recent messages, call `search_messages` before saying you do not know.",
-    "- Never suggest posting to X during EU daytime; her window is 18:00-01:00 CEST.",
   ].join("\n");
 }
 
@@ -183,7 +182,7 @@ export async function buildSystemPrompt(workspaceId: string, currentPage?: strin
     loadChatState(workspaceId),
   ]);
   const supabase = await createClient();
-  const { data: projects } = await supabase.from("products").select("id, name").eq("workspace_id", workspaceId);
+  const { data: projects } = await supabase.from("projects").select("id, name").eq("workspace_id", workspaceId);
 
   const sections = [
     rules(),

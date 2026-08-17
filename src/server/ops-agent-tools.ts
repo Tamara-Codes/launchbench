@@ -15,8 +15,9 @@ import { requestTenantJob } from "./tenant-job-actions";
  * produce it, but a model can.
  *
  * Reads are mostly absent on purpose — the current state is already in the
- * system prompt, so a `list_tasks` tool would just burn a round trip. The two
- * exceptions are the transcript (too large to inline) and project lookup.
+ * system prompt, so a `list_tasks` tool would just burn a round trip. The
+ * exceptions are the things too large to inline: the transcript and project
+ * lookup.
  */
 
 type ToolContext = { workspaceId: string };
@@ -25,10 +26,10 @@ type ToolContext = { workspaceId: string };
 async function resolveProject(workspaceId: string, name?: string): Promise<string> {
   if (!name || name.toLowerCase() === "company" || name.toLowerCase() === "none") return "none";
   const supabase = await createClient();
-  const { data } = await supabase.from("products").select("id, name").eq("workspace_id", workspaceId);
+  const { data } = await supabase.from("projects").select("id, name").eq("workspace_id", workspaceId);
   const wanted = name.trim().toLowerCase();
-  const match = (data ?? []).find((product) => product.name.toLowerCase() === wanted)
-    ?? (data ?? []).find((product) => product.name.toLowerCase().includes(wanted));
+  const match = (data ?? []).find((project) => project.name.toLowerCase() === wanted)
+    ?? (data ?? []).find((project) => project.name.toLowerCase().includes(wanted));
   if (!match) throw new Error(`No project called "${name}". Known projects: ${(data ?? []).map((p) => p.name).join(", ")}.`);
   return match.id;
 }
@@ -50,8 +51,8 @@ export function opsTools({ workspaceId }: ToolContext) {
         notes: z.string().optional(),
       }),
       execute: async ({ title, due_on, project, priority, notes }) => {
-        const productId = await resolveProject(workspaceId, project);
-        return unwrap(await createOpsTask({ title, dueOn: due_on ?? "", productId, priority: priority ?? "normal", notes: notes ?? "" }));
+        const projectId = await resolveProject(workspaceId, project);
+        return unwrap(await createOpsTask({ title, dueOn: due_on ?? "", projectId, priority: priority ?? "normal", notes: notes ?? "" }));
       },
     }),
 
@@ -84,8 +85,8 @@ export function opsTools({ workspaceId }: ToolContext) {
         notes: z.string().optional(),
       }),
       execute: async ({ id, title, due_on, project, priority, notes }) => {
-        const productId = await resolveProject(workspaceId, project);
-        return unwrap(await updateOpsTask(id, { title, dueOn: due_on ?? "", productId, priority: priority ?? "normal", notes: notes ?? "" }));
+        const projectId = await resolveProject(workspaceId, project);
+        return unwrap(await updateOpsTask(id, { title, dueOn: due_on ?? "", projectId, priority: priority ?? "normal", notes: notes ?? "" }));
       },
     }),
 
@@ -103,17 +104,17 @@ export function opsTools({ workspaceId }: ToolContext) {
         notes: z.string().optional(),
       }),
       execute: async ({ title, kind, starts_at, ends_at, all_day, location, recurrence, project, notes }) => {
-        const productId = await resolveProject(workspaceId, project);
+        const projectId = await resolveProject(workspaceId, project);
         return unwrap(await createOpsEvent({
           title, kind, startsAt: starts_at, endsAt: ends_at ?? "", allDay: all_day ?? false,
-          location: location ?? "", recurrence: recurrence ?? "", productId, notes: notes ?? "",
+          location: location ?? "", recurrence: recurrence ?? "", projectId, notes: notes ?? "",
         }));
       },
     }),
 
     remember: tool({
       description:
-        "Record something durable about her, her products, her clients, or a decision. "
+        "Record something durable about her, her projects, her clients, or a decision. "
         + "CHECK THE EXISTING FACTS FIRST: if one already covers this subject, pass its exact slug so it is updated instead of duplicated.",
       inputSchema: z.object({
         slug: z.string().regex(/^[a-z0-9-]+$/).describe("Short kebab-case handle naming the SUBJECT, e.g. 'frederick-comp'."),
@@ -122,7 +123,7 @@ export function opsTools({ workspaceId }: ToolContext) {
         project: z.string().optional(),
       }),
       execute: async ({ slug, kind, body, project }) => {
-        const productId = await resolveProject(workspaceId, project);
+        const projectId = await resolveProject(workspaceId, project);
         const supabase = await createClient();
         const { error } = await supabase.from("ops_facts").upsert(
           {
@@ -130,7 +131,7 @@ export function opsTools({ workspaceId }: ToolContext) {
             slug,
             kind,
             body,
-            product_id: productId === "none" ? null : productId,
+            project_id: projectId === "none" ? null : projectId,
             source: "agent",
           },
           { onConflict: "workspace_id,slug" },
@@ -186,12 +187,12 @@ export function opsTools({ workspaceId }: ToolContext) {
         notes: z.string().optional().describe("Why this should work — the reasoning behind the draft."),
       }),
       execute: async ({ project, hook, caption, scheduled_for, notes }) => {
-        const productId = await resolveProject(workspaceId, project);
-        if (productId === "none") throw new Error("A post needs a project. Use 'Personal Brand' for posts about herself.");
+        const projectId = await resolveProject(workspaceId, project);
+        if (projectId === "none") throw new Error("A post needs a project. Use 'Personal Brand' for posts about herself.");
         const supabase = await createClient();
         const { data, error } = await supabase.from("content_items").insert({
           workspace_id: workspaceId,
-          product_id: productId,
+          project_id: projectId,
           platform: "x",
           format: "single_image",
           content_type: "post",
@@ -217,15 +218,15 @@ export function opsTools({ workspaceId }: ToolContext) {
         target_leads: z.number().int().min(1).max(50).optional(),
       }),
       execute: async ({ project, territory, target_leads }) => {
-        const productId = await resolveProject(workspaceId, project);
-        if (productId === "none") throw new Error("The lead finder runs against a specific project.");
+        const projectId = await resolveProject(workspaceId, project);
+        if (projectId === "none") throw new Error("The lead finder runs against a specific project.");
         const supabase = await createClient();
-        // Territories belong to a product, so the lookup must be scoped to it.
+        // Territories belong to a project, so the lookup must be scoped to it.
         const { data: territories } = await supabase
           .from("territories")
           .select("id, town")
           .eq("workspace_id", workspaceId)
-          .eq("product_id", productId)
+          .eq("project_id", projectId)
           .eq("active", true);
         const wanted = territory.trim().toLowerCase();
         const match = (territories ?? []).find((entry) => entry.town.toLowerCase() === wanted)
@@ -238,7 +239,7 @@ export function opsTools({ workspaceId }: ToolContext) {
         }
         const queued = await requestTenantJob({
           kind: "lead_search",
-          productId,
+          projectId,
           input: { territoryId: match.id, targetLeads: target_leads ?? 10 },
         });
         if (!queued.ok) throw new Error(queued.error);
@@ -259,23 +260,23 @@ export function opsTools({ workspaceId }: ToolContext) {
         extra_instruction: z.string().optional(),
       }),
       execute: async ({ project, content_type, format, mode, variations, extra_instruction }) => {
-        const productId = await resolveProject(workspaceId, project);
-        if (productId === "none") throw new Error("The content agent runs against a specific project.");
+        const projectId = await resolveProject(workspaceId, project);
+        if (projectId === "none") throw new Error("The content agent runs against a specific project.");
         const supabase = await createClient();
-        // Default the language to the product's own rather than the schema's 'hr'.
-        const { data: product } = await supabase
-          .from("products")
+        // Default the language to the project's own rather than the schema's 'hr'.
+        const { data: matchedProject } = await supabase
+          .from("projects")
           .select("preferred_language")
-          .eq("id", productId)
+          .eq("id", projectId)
           .maybeSingle();
         const queued = await requestTenantJob({
           kind: "content_generation",
-          productId,
+          projectId,
           input: {
             contentType: content_type,
             format: format ?? "single_image",
             mode: mode ?? "caption",
-            language: product?.preferred_language ?? "en",
+            language: matchedProject?.preferred_language ?? "en",
             variations: variations ?? 1,
             extraInstruction: extra_instruction ?? "",
           },

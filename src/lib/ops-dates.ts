@@ -101,7 +101,14 @@ export function timeLabel(instant: string | Date): string {
 
 /** "Wed 29 Jul" — compact enough for day headings in a dense list. */
 export function dayLabel(key: string): string {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: OPS_TIMEZONE, weekday: "short", day: "numeric", month: "short" }).format(startOfDay(key));
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: OPS_TIMEZONE,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).formatToParts(startOfDay(key));
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return [value("weekday"), value("day"), value("month")].filter(Boolean).join(" ");
 }
 
 /** Relative day naming, so the agenda reads like speech rather than dates. */

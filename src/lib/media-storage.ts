@@ -16,16 +16,16 @@ export function storageAbsolutePath(relativePath: string) {
   return resolved;
 }
 
-export async function saveUploadedProductMedia(productId: string, fileName: string, data: Buffer) {
-  const relative = `uploads/products/${productId}/${newId()}${safeExtension(fileName)}`;
+export async function saveUploadedProjectMedia(projectId: string, fileName: string, data: Buffer) {
+  const relative = `uploads/projects/${projectId}/${newId()}${safeExtension(fileName)}`;
   const absolute = storageAbsolutePath(relative);
   await mkdir(resolve(absolute, ".."), { recursive: true });
   await writeFile(absolute, data);
   return relative;
 }
 
-export async function saveGeneratedSocialImage(productId: string, data: Buffer) {
-  const relative = `generated/social/${productId}/${newId()}.png`;
+export async function saveGeneratedSocialImage(projectId: string, data: Buffer) {
+  const relative = `generated/social/${projectId}/${newId()}.png`;
   const absolute = storageAbsolutePath(relative);
   await mkdir(resolve(absolute, ".."), { recursive: true });
   await writeFile(absolute, data);

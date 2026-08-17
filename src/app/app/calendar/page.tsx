@@ -9,7 +9,7 @@ import { addMonths, dayKey, monthGridDays, monthKey, monthLabel } from "@/lib/op
 
 export const dynamic = "force-dynamic";
 
-/** Legend entries mirror the dot colours in the grid. */
+/** Legend entries mirror the chip rails in the grid. */
 const legend = [
   { label: "Meeting", className: "bg-accent" },
   { label: "Deadline", className: "bg-danger" },
@@ -60,19 +60,19 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-ink-strong">{monthLabel(month)}</h2>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 text-xs text-muted">
           {legend.map((entry) => (
             <span key={entry.label} className="flex items-center gap-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${entry.className}`} />
+              <span className={`h-3.5 w-[3px] rounded-full ${entry.className}`} />
               {entry.label}
             </span>
           ))}
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-sm border border-muted" />
+            <span className="h-2.5 w-2.5 rounded-[3px] border border-muted/70" />
             Task
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="font-semibold uppercase">X</span>
+            <span className="rounded bg-surface2 px-1 py-px text-[9px] font-bold uppercase tracking-wider text-ink">X</span>
             Scheduled post
           </span>
         </div>

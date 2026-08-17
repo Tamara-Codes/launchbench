@@ -1,15 +1,52 @@
 import type { LeadAnalysis } from "@/agents/lead-finder/schema";
 import { classifyLocation, type TerritoryBounds } from "./geo";
+import { foldCroatian } from "./normalize/diacritics";
 import { normalizeEmail } from "./normalize/email";
 
-/** Qualification policy persisted with a Supabase territory/job request. */
+function canonicalToken(token: string): string {
+  if (token.endsWith("ies") && token.length > 4) return `${token.slice(0, -3)}y`;
+  if (token.endsWith("sses") && token.length > 5) return token.slice(0, -2);
+  if (token.endsWith("s") && !token.endsWith("ss") && token.length > 4) {
+    return token.slice(0, -1);
+  }
+  return token;
+}
+
+function canonicalTokens(text: string): string[] {
+  return foldCroatian(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(canonicalToken);
+}
+
+function canonicalPhrase(text: string): string {
+  return canonicalTokens(text).join(" ");
+}
+
+/** Match whole normalized tokens, never arbitrary substrings. */
+export function deterministicExclusionMatch(exclusion: string, evidenceText: string): boolean {
+  const exclusionTokens = canonicalTokens(exclusion);
+  if (exclusionTokens.length === 0) return false;
+  const evidenceTokens = canonicalTokens(evidenceText);
+  if (evidenceTokens.length === 0) return false;
+
+  const exclusionPhrase = exclusionTokens.join(" ");
+  const evidencePhrase = evidenceTokens.join(" ");
+  if (` ${evidencePhrase} `.includes(` ${exclusionPhrase} `)) return true;
+
+  const evidenceSet = new Set(evidenceTokens);
+  return exclusionTokens.length > 1 && exclusionTokens.every((token) => evidenceSet.has(token));
+}
+
+/** Generic qualification policy persisted with a territory/job request. */
 export interface QualificationSettings {
   requirePublicEmail: boolean;
   requireWithinTerritory: boolean;
   requireWebsite: boolean;
-  requireIndependent: boolean;
   minConfidence: number;
-  rejectExistingDigitalGuide: boolean;
 }
 
 export type QualificationOutcome = "qualified" | "manualReview" | "rejected";
@@ -20,8 +57,14 @@ export interface QualificationInput {
   sourceEmails: string[];
   bounds: TerritoryBounds;
   settings: QualificationSettings;
-  /** Location string assembled from evidence (used for hard geo check). */
+  /** Location text assembled from evidence for the hard geographic check. */
   locationText: string;
+  /** Project-level business types to hard-reject (e.g. "hostel", "campsite"),
+   * matched case/diacritic-insensitively against the candidate's business
+   * type, its Google Places categories, and the model's own fact lists. */
+  excludedBusinessTypes?: string[];
+  /** Google Places category codes for the candidate (e.g. "campground"). */
+  placeTypes?: string[];
 }
 
 export interface QualificationResult {
@@ -29,19 +72,17 @@ export interface QualificationResult {
   score: number;
   reasons: string[];
   rejectionReasons: string[];
-  /** The email we trust — only if it appears verbatim in source text. */
+  /** Trusted only when it appears verbatim in public source text. */
   verifiedEmail: string;
   geo: ReturnType<typeof classifyLocation>;
 }
 
 /**
- * Mandatory qualification checks implemented in application code. Gemini's
- * reasoning/confidence is advisory only; the decision to accept a lead is made
- * here. An email is trusted ONLY when it appears verbatim in the scraped page
- * text (defends against model-invented addresses).
+ * Deterministic final checks. The model supplies structured project-fit
+ * findings, but application code controls the accepted outcome and score.
  */
 export function qualifyLead(input: QualificationInput): QualificationResult {
-  const { analysis, sourceEmails, bounds, settings, locationText } = input;
+  const { analysis, sourceEmails, bounds, settings, locationText, excludedBusinessTypes = [], placeTypes = [] } = input;
   const reasons: string[] = [];
   const rejectionReasons: string[] = [];
 
@@ -50,10 +91,38 @@ export function qualifyLead(input: QualificationInput): QualificationResult {
   const verifiedEmail =
     claimedEmail && normalizedSources.has(claimedEmail) ? claimedEmail : "";
 
-  // --- Hard geographic boundary (code decides, not the model) ---------------
   const geo = classifyLocation(locationText || analysis.location, bounds);
-
   let hardFail = false;
+
+  // --- Project-specific exclusions (code decides, not the model) ------------
+  // Matched against the model's own business type + fact lists and the
+  // candidate's Google Places categories, so a project can rule out a class
+  // of business (e.g. "hostel", "campsite") regardless of how the model scores it.
+  if (excludedBusinessTypes.length > 0) {
+    const evidenceText = [
+      analysis.businessType,
+      ...analysis.verifiedFacts,
+      ...analysis.inferredFacts,
+      ...analysis.fitReasons,
+      ...placeTypes,
+    ].join(" ");
+    const deterministicMatch = excludedBusinessTypes.find((exclusion) =>
+      deterministicExclusionMatch(exclusion, evidenceText),
+    );
+    const claimedMatch = analysis.matchesProjectExclusion
+      ? canonicalPhrase(analysis.matchedProjectExclusion)
+      : "";
+    const verifiedModelMatch = claimedMatch
+      ? excludedBusinessTypes.find(
+          (exclusion) => canonicalPhrase(exclusion) === claimedMatch,
+        )
+      : undefined;
+    const matched = deterministicMatch ?? verifiedModelMatch;
+    if (matched) {
+      rejectionReasons.push(`Matches project exclusion: "${matched}"`);
+      hardFail = true;
+    }
+  }
 
   if (settings.requireWithinTerritory) {
     if (geo === "outside" || geo === "excluded") {
@@ -64,34 +133,24 @@ export function qualifyLead(input: QualificationInput): QualificationResult {
     }
   }
 
-  // --- Public email (verbatim in source) ------------------------------------
-  if (settings.requirePublicEmail) {
-    if (!verifiedEmail) {
-      rejectionReasons.push(
-        claimedEmail
-          ? "Email not found verbatim in public source text"
-          : "No public business email found",
-      );
-      hardFail = true;
-    }
+  if (settings.requirePublicEmail && !verifiedEmail) {
+    rejectionReasons.push(
+      claimedEmail
+        ? "Email not found verbatim in public source text"
+        : "No public business email found",
+    );
+    hardFail = true;
   }
 
-  // --- Website / directory listing ------------------------------------------
   const hasWebsite = Boolean((analysis.website ?? "").trim());
-  const hasEvidence = (analysis.sourceEvidence ?? []).length > 0;
+  const hasEvidence = analysis.sourceEvidence.length > 0;
   if (settings.requireWebsite && !hasWebsite && !hasEvidence) {
     rejectionReasons.push("No credible public website or listing");
     hardFail = true;
   }
 
-  // --- Operates accommodation & plausibly benefits --------------------------
-  const type = (analysis.accommodationType ?? "").toLowerCase();
-  const looksLikeAccommodation =
-    Boolean(type) ||
-    analysis.estimatedUnits != null ||
-    analysis.qualificationReasons.length > 0;
-  if (!looksLikeAccommodation) {
-    rejectionReasons.push("Does not clearly operate tourist accommodation");
+  if (!(analysis.businessType ?? "").trim()) {
+    rejectionReasons.push("Business type could not be established");
     hardFail = true;
   }
 
@@ -100,36 +159,41 @@ export function qualifyLead(input: QualificationInput): QualificationResult {
     hardFail = true;
   }
 
-  // --- Confidence floor ------------------------------------------------------
+  if (!analysis.matchesIdealCustomer) {
+    rejectionReasons.push(
+      analysis.disqualifyingReasons[0] || "Does not match the project's ideal customer",
+    );
+    hardFail = true;
+  }
+
+  if (analysis.offerRelevance === "none") {
+    rejectionReasons.push("No credible relevance to the project's offer");
+    hardFail = true;
+  } else if (analysis.offerRelevance === "weak") {
+    rejectionReasons.push("Offer relevance is weak and requires manual review");
+  }
+
   if (analysis.confidence < settings.minConfidence) {
     rejectionReasons.push(
       `Model confidence ${analysis.confidence.toFixed(2)} below threshold ${settings.minConfidence}`,
     );
   }
 
-  // --- Positive scoring ------------------------------------------------------
   let score = 0;
-  const add = (label: string, pts: number) => {
+  const add = (label: string, points: number) => {
     reasons.push(label);
-    score += pts;
+    score += points;
   };
+
   if (verifiedEmail) add("Verified public email", 20);
   if (geo === "inTerritory") add("Confirmed within territory", 20);
-  if ((analysis.estimatedUnits ?? 0) >= 2) add("Multiple accommodation units", 10);
-  if (analysis.directBooking) add("Direct booking present", 10);
-  if ((analysis.languages ?? []).length >= 2) add("Multilingual website", 8);
-  if (analysis.internationalGuestsLikely) add("International guests likely", 8);
-  if (hasWebsite) add("Credible website", 8);
-  if (!analysis.existingDigitalGuideDetected) add("No existing digital guide", 10);
-  else rejectionReasons.push("Existing sophisticated digital guide detected");
-  score += Math.round(analysis.confidence * 6);
-
-  // --- Existing digital guide (configurable hard reject) --------------------
-  if (settings.rejectExistingDigitalGuide && analysis.existingDigitalGuideDetected) {
-    rejectionReasons.push("Rejecting: existing digital guide");
-    hardFail = true;
-  }
-
+  if (analysis.matchesIdealCustomer) add("Matches the project's ideal customer", 25);
+  if (analysis.offerRelevance === "strong") add("Strong offer relevance", 15);
+  if (analysis.offerRelevance === "possible") add("Possible offer relevance", 8);
+  if (analysis.offerRelevance === "weak") add("Weak offer relevance", 3);
+  if (hasWebsite) add("Credible website", 10);
+  if ((analysis.publicPhone ?? "").trim()) add("Public phone found", 5);
+  score += Math.round(analysis.confidence * 5);
   score = Math.max(0, Math.min(100, score));
 
   let outcome: QualificationOutcome;
@@ -137,10 +201,9 @@ export function qualifyLead(input: QualificationInput): QualificationResult {
     outcome = "rejected";
   } else if (
     geo === "ambiguous" ||
+    analysis.offerRelevance === "weak" ||
     analysis.confidence < settings.minConfidence
   ) {
-    // Ambiguous location or low confidence => manual review, does NOT count
-    // toward the qualified-lead target.
     outcome = "manualReview";
   } else {
     outcome = "qualified";
