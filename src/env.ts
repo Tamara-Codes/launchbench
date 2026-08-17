@@ -26,6 +26,11 @@ const schema = z.object({
   GOOGLE_CSE_ID: z.string().optional().default(""),
   COMPOSIO_API_KEY: z.string().optional().default(""),
   COMPOSIO_AUTH_CONFIG_ID: z.string().optional().default(""),
+  // Composio's Gmail toolkit is versioned as a whole (one version string
+  // covers every GMAIL_* tool). Pinned centrally here so every tenant's
+  // Gmail actions run against the same known-good toolkit release — bump
+  // deliberately, never let individual calls silently resolve to "latest".
+  COMPOSIO_GMAIL_TOOLKIT_VERSION: z.string().min(1).default("20260815_00"),
   LANGFUSE_PUBLIC_KEY: z.string().optional().default(""),
   LANGFUSE_SECRET_KEY: z.string().optional().default(""),
   LANGFUSE_BASE_URL: z.string().optional().default(""),

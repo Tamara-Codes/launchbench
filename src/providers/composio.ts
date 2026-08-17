@@ -84,7 +84,10 @@ export class ComposioGmailProvider {
   private getClient(): Composio {
     if (!this.hasApiKey()) throw new Error("COMPOSIO_API_KEY is not configured.");
     if (!this.client) {
-      this.client = new Composio({ apiKey: getEnv().COMPOSIO_API_KEY });
+      this.client = new Composio({
+        apiKey: getEnv().COMPOSIO_API_KEY,
+        toolkitVersions: { gmail: getEnv().COMPOSIO_GMAIL_TOOLKIT_VERSION },
+      });
     }
     return this.client;
   }
@@ -152,12 +155,10 @@ export class ComposioGmailProvider {
 
   private async exec(slug: string, userId: string, args: Record<string, unknown>) {
     const client = this.getClient();
-    // Composio requires pinning a toolkit version for manual tool.execute()
-    // calls, or it throws ComposioToolVersionRequiredError. We don't track
-    // Gmail toolkit version numbers ourselves, so opt out of that pinning —
-    // this is a single-user integration, not a multi-tenant surface where an
-    // unpinned toolkit update could silently change behavior for others.
-    const res: any = await client.tools.execute(slug, { userId, arguments: args, dangerouslySkipVersionCheck: true });
+    // Toolkit version comes from the client's `toolkitVersions` config (see
+    // getClient()), pinned centrally so every tenant's Gmail actions run
+    // against the same known-good toolkit release.
+    const res: any = await client.tools.execute(slug, { userId, arguments: args });
     if (res && res.successful === false) {
       throw new Error(`Gmail action ${slug} failed: ${safeErrorMessage(res.error)}`);
     }
